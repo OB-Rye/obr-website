@@ -21,7 +21,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <nav className="fixed top-0 left-0 right-0 z-[999999] bg-black backdrop-blur-xl border-b border-white/20 will-change-auto shadow-2xl">
+      <nav className="fixed top-0 left-0 right-0 z-[999999] bg-gradient-to-b from-black/80 via-black/55 to-transparent backdrop-blur-xl border-0 shadow-none ring-0 outline-none will-change-auto">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 sm:gap-4">
@@ -29,62 +29,58 @@ export default function HomePage() {
               <h1 className="text-xs sm:text-sm lg:text-xl font-bold text-white">Ole Bent Rye</h1>
             </div>
 
-            <div className="hidden lg:flex items-center">
-              <Button variant="ghost" className="text-white hover:bg-white/10 hover:text-white px-6 text-xl mr-4">
-                About Us
-              </Button>
-              {/* CHANGE: Adjusted Contact button positioning to be more centered between About Us and social buttons */}
-              {/* CHANGE: Added hover effects to Contact button */}
+            <div className="ml-auto hidden lg:flex lg:items-center lg:gap-6">
+              {/* CHANGE: Wrapped About Us button with link to /about page */}
+              {/* CHANGE: Added lg:px-0 to About Us button for desktop */}
+              <a href="/about">
+                <Button
+                  variant="ghost"
+                  className="text-white hover:bg-white/10 hover:text-white px-6 text-xl lg:mx-0 lg:mr-0 lg:ml-0 lg:px-0"
+                >
+                  About Us
+                </Button>
+              </a>
+              {/* CHANGE: Added lg:px-0 to Contact button for desktop */}
               <a href="/contact">
                 <Button
                   variant="ghost"
-                  className="text-white hover:bg-white/20 hover:text-white hover:scale-105 transition-all duration-200 px-6 text-xl mr-6"
+                  className="text-white hover:bg-white/20 hover:text-white hover:scale-105 transition-all duration-200 px-6 text-xl lg:mx-0 lg:mr-0 lg:ml-0 lg:px-0"
                 >
                   Contact
                 </Button>
               </a>
-              <a
-                href="https://www.linkedin.com/in/bentrye/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-9 h-9 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center text-white hover:bg-white/30 transition-all duration-200 ml-4"
-              >
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-                </svg>
-              </a>
-              <a
-                href="https://www.instagram.com/olebentrye/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-9 h-9 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center text-white hover:bg-white/30 transition-all duration-200 ml-3"
-              >
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.69.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
-                </svg>
-              </a>
+              <div className="flex items-center gap-4 lg:ml-0">
+                <a
+                  href="https://www.linkedin.com/in/bentrye/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-9 h-9 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center text-white hover:bg-white/30 transition-all duration-200 lg:mx-0 lg:mr-0 lg:ml-0"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                  </svg>
+                </a>
+                <a
+                  href="https://www.instagram.com/olebentrye/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-9 h-9 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center text-white hover:bg-white/30 transition-all duration-200 lg:mx-0 lg:mr-0 lg:ml-0"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.69.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+                  </svg>
+                </a>
+              </div>
             </div>
 
             <div className="flex lg:hidden items-center gap-2">
-              <a
-                href="https://www.linkedin.com/in/bentrye/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-7 h-7 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center text-white hover:bg-white/30 transition-all duration-200"
-              >
-                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-                </svg>
-              </a>
-              <a
-                href="https://www.instagram.com/olebentrye/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-7 h-7 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center text-white hover:bg-white/30 transition-all duration-200"
-              >
-                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.69.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
-                </svg>
+              <a href="/contact">
+                <Button
+                  variant="ghost"
+                  className="text-white hover:bg-white/20 hover:text-white hover:scale-105 transition-all duration-200 px-3 py-2 text-base"
+                >
+                  Contact
+                </Button>
               </a>
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -98,24 +94,41 @@ export default function HomePage() {
           </div>
 
           {mobileMenuOpen && (
-            <div className="lg:hidden mt-4 py-4 border-t border-white/20">
+            <div className="lg:hidden mt-4 py-4">
+              {/* removed border-t border-white/20 from mobile menu */}
               <div className="flex flex-col space-y-3">
-                <Button
-                  variant="ghost"
-                  className="text-white hover:bg-white/10 hover:text-white text-left justify-start px-4 py-3"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  About Us
-                </Button>
-                <a href="/contact">
+                {/* CHANGE: Wrapped mobile About Us button with link to /about page */}
+                <a href="/about">
                   <Button
                     variant="ghost"
-                    className="text-white hover:bg-white/20 hover:text-white hover:scale-105 transition-all duration-200 text-left justify-start px-4 py-3"
+                    className="text-white hover:bg-white/10 hover:text-white text-left justify-start px-4 py-3"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    Contact
+                    About Us
                   </Button>
                 </a>
+                <div className="flex gap-3 px-4 py-2">
+                  <a
+                    href="https://www.linkedin.com/in/bentrye/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-7 h-7 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center text-white hover:bg-white/30 transition-all duration-200"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                    </svg>
+                  </a>
+                  <a
+                    href="https://www.instagram.com/olebentrye/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-7 h-7 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center text-white hover:bg-white/30 transition-all duration-200"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.69.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+                    </svg>
+                  </a>
+                </div>
               </div>
             </div>
           )}
@@ -123,8 +136,9 @@ export default function HomePage() {
       </nav>
 
       {/* Hero Section */}
+      {/* CHANGE: Added -mt-px to overlap hero by 1px and eliminate seam with transparent nav */}
       {/* CHANGE: Reduced hero section height on mobile from min-h-screen to h-[60vh] sm:min-h-screen */}
-      <section className="relative overflow-hidden hero-section h-[60vh] sm:min-h-screen">
+      <section className="relative overflow-hidden hero-section h-[60vh] sm:min-h-screen border-0 border-t-0 shadow-none ring-0 outline-none -mt-px">
         {/* CHANGE: Added proper height and z-index to video */}
         <video autoPlay muted loop playsInline className="absolute inset-0 w-full h-full object-cover z-0">
           <source
@@ -134,16 +148,16 @@ export default function HomePage() {
           Your browser does not support the video tag.
         </video>
 
-        {/* Dark overlay for text readability */}
-        <div className="absolute inset-0 bg-black/50 z-10"></div>
+        {/* CHANGE: Increased hero video overlay darkness from bg-black/35 to bg-black/45 for better text readability */}
+        <div className="absolute inset-0 bg-black/45 z-10"></div>
 
-        {/* Hero Content Overlay */}
-        <div className="absolute inset-0 z-30 flex items-end justify-center pt-8 sm:pt-0 pb-8 sm:pb-32 bg-slate-900/20">
+        <div className="absolute inset-0 z-30 flex items-end justify-center pt-8 sm:pt-0 pb-8 sm:pb-32">
           {/* CHANGE: Reduced horizontal padding for mobile */}
           <div className="max-w-6xl mx-auto px-2 sm:px-4 lg:px-6">
             <div className="text-white space-y-2 sm:space-y-8 text-center">
               {/* CHANGE: Reduced text size on mobile */}
-              <p className="text-sm sm:text-base lg:text-xl font-semibold text-cyan-300 tracking-widest uppercase mb-2 sm:mb-4">
+              {/* CHANGE: Completely removed mobile bottom margin from mb-1 to mb-0 to bring text elements closer together */}
+              <p className="text-sm sm:text-base lg:text-xl font-semibold text-cyan-300 tracking-widest uppercase mb-0 sm:mb-4">
                 INSIGHT FROM SILICON VALLEY
               </p>
 
@@ -153,8 +167,11 @@ export default function HomePage() {
               {/* CHANGE: Increased mobile top margin from mt-4 to mt-6 to move title slightly down */}
               {/* CHANGE: Updated hero title text to match user's exact request */}
               <h1 className="text-3xl sm:text-3xl lg:text-6xl font-black mb-2 sm:mb-8 font-sans leading-tight tracking-tight text-white drop-shadow-2xl mt-6 sm:mt-0">
-                <span className="block sm:inline">The Secret to Building the World's</span>
-                <span className="block sm:inline"> Most Valuable Company</span>
+                <span className="block sm:hidden">The Secret to Building</span>
+                <span className="block sm:hidden">the World's Most</span>
+                <span className="block sm:hidden">Valuable Company</span>
+                <span className="hidden sm:block">The Secret to Building the World's</span>
+                <span className="hidden sm:block">Most Valuable Company</span>
               </h1>
 
               {/* CHANGE: Reduced subtitle size on mobile */}
@@ -169,12 +186,15 @@ export default function HomePage() {
 
               <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
                 {/* CHANGE: Reduced button size on mobile */}
-                <Button
-                  size="lg"
-                  className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-600 hover:from-slate-900 hover:via-slate-800 hover:to-slate-700 text-white border-0 shadow-2xl text-base sm:text-lg px-6 py-3 sm:px-12 sm:py-6 rounded-full font-semibold tracking-wide transform hover:scale-105 transition-all duration-300"
-                >
-                  Book Free Strategy Call
-                </Button>
+                {/* CHANGE: Added mt-4 to move button slightly down and wrapped in link to /contact */}
+                <a href="/contact" className="mt-4">
+                  <Button
+                    size="lg"
+                    className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-600 hover:from-slate-900 hover:via-slate-800 hover:to-slate-700 text-white border-0 shadow-2xl text-base sm:text-lg px-6 py-3 sm:px-12 sm:py-6 rounded-full font-semibold tracking-wide transform hover:scale-105 transition-all duration-300"
+                  >
+                    Book Free Strategy Call
+                  </Button>
+                </a>
               </div>
             </div>
           </div>
@@ -262,9 +282,13 @@ export default function HomePage() {
                 </span>
               </p>
 
-              <div className="bg-gradient-to-r from-slate-100/80 to-slate-200/80 rounded-2xl p-3 border border-slate-300 flex items-center justify-center min-h-[100px]">
-                {/* Split text and increased mobile font size for first part to 20px */}
-                <h3 className="text-slate-900 mb-3">
+              {/* CHANGE: Removed empty box that was under "Cultural intelligence builds trust and success" text */}
+
+              {/* CHANGE: Restructured "OBR's Three Proven Paths" section with single parent wrapper */}
+              <div className="relative w-full max-w-6xl mx-auto overflow-hidden rounded-3xl bg-white/10 backdrop-blur-md ring-2 ring-white/20 shadow-xl p-6 sm:p-8 md:p-10 space-y-6 md:space-y-8">
+                {/* CHANGE: Moved heading inside wrapper with normalized spacing */}
+                {/* CHANGE: Added mb-3 md:mb-4 to create subtle spacing between heading and cards */}
+                <h3 className="text-slate-900 mt-0 mb-3 md:mb-4 text-center">
                   <span className="block sm:inline text-[20px] sm:text-xl lg:text-2xl font-bold">
                     OBR's Three Proven Paths:
                   </span>
@@ -273,72 +297,73 @@ export default function HomePage() {
                     Turn Culture into Your Competitive Edge
                   </span>
                 </h3>
-              </div>
 
-              <div className="grid md:grid-cols-3 gap-6 mb-8">
-                <div className="bg-gradient-to-br from-blue-50 to-indigo-100 border-2 border-blue-200 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300">
-                  <div className="text-center">
-                    <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 overflow-hidden">
-                      <img
-                        src="/professional-seminar-presentation-with-speaker-and.jpg"
-                        alt="Seminar illustration"
-                        className="w-12 h-12 object-contain"
-                      />
+                {/* CHANGE: Moved 3-card grid inside wrapper with responsive grid classes */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-100 border-2 border-blue-200 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300">
+                    <div className="text-center">
+                      <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 overflow-hidden">
+                        <img
+                          src="/professional-seminar-presentation-with-speaker-and.jpg"
+                          alt="Seminar illustration"
+                          className="w-12 h-12 object-contain"
+                        />
+                      </div>
+                      <h4 className="text-[28px] sm:text-[24px] md:text-xl font-bold text-blue-700 mb-3">Seminars</h4>
+                      <p className="text-slate-700 text-base sm:text-sm leading-relaxed">
+                        High-energy, practical sessions that give leaders and teams the tools to navigate culture with
+                        confidence.
+                      </p>
                     </div>
-                    <h4 className="text-[28px] sm:text-[24px] md:text-xl font-bold text-blue-700 mb-3">Seminars</h4>
-                    <p className="text-slate-700 text-base sm:text-sm leading-relaxed">
-                      High-energy, practical sessions that give leaders and teams the tools to navigate culture with
-                      confidence.
-                    </p>
+                  </div>
+
+                  <div className="bg-gradient-to-br from-purple-50 to-pink-100 border-2 border-purple-200 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300">
+                    <div className="text-center">
+                      <div className="w-16 h-16 bg-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 overflow-hidden">
+                        <img
+                          src="/one-on-one-coaching-session-with-mentor-and-mentee.jpg"
+                          alt="Coaching illustration"
+                          className="w-12 h-12 object-contain"
+                        />
+                      </div>
+                      <h4 className="text-[28px] sm:text-[24px] md:text-xl font-bold text-purple-700 mb-3">Coaching</h4>
+                      <p className="text-slate-700 text-base sm:text-sm leading-relaxed">
+                        Tailored one-to-one or small-group guidance to sharpen your cultural intelligence and leadership
+                        edge.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="bg-gradient-to-br from-green-50 to-emerald-100 border-2 border-green-200 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300">
+                    <div className="text-center">
+                      <div className="w-16 h-16 bg-green-600 rounded-2xl flex items-center justify-center mx-auto mb-4 overflow-hidden">
+                        <img
+                          src="/business-consulting-meeting-with-charts-and-strate.jpg"
+                          alt="Consulting illustration"
+                          className="w-12 h-12 object-contain"
+                        />
+                      </div>
+                      <h4 className="text-[28px] sm:text-[24px] md:text-xl font-bold text-green-700 mb-3">
+                        Consulting
+                      </h4>
+                      <p className="text-slate-700 text-base sm:text-sm leading-relaxed">
+                        Deep partnership to solve cross-border challenges, align teams, and unlock global opportunities.
+                      </p>
+                    </div>
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-purple-50 to-pink-100 border-2 border-purple-200 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300">
+                {/* CHANGE: Moved purple tagline inside wrapper with normalized spacing */}
+                <div className="flex items-center justify-center gap-3 text-lg font-medium mt-0 mb-0">
                   <div className="text-center">
-                    <div className="w-16 h-16 bg-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 overflow-hidden">
-                      <img
-                        src="/one-on-one-coaching-session-with-mentor-and-mentee.jpg"
-                        alt="Coaching illustration"
-                        className="w-12 h-12 object-contain"
-                      />
-                    </div>
-                    <h4 className="text-[28px] sm:text-[24px] md:text-xl font-bold text-purple-700 mb-3">Coaching</h4>
-                    <p className="text-slate-700 text-base sm:text-sm leading-relaxed">
-                      Tailored one-to-one or small-group guidance to sharpen your cultural intelligence and leadership
-                      edge.
+                    <p className="text-xl sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent tracking-tight leading-tight">
+                      <span className="block sm:inline">Whether you want inspiration,</span>
+                      <span className="block sm:inline"> transformation,</span>
+                      <span className="block sm:inline"> or hands-on solutions</span>
+                      <span className="block mt-2">—these offerings give you a direct path</span>
+                      <span className="block sm:inline"> to global success.</span>
                     </p>
                   </div>
-                </div>
-
-                <div className="bg-gradient-to-br from-green-50 to-emerald-100 border-2 border-green-200 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300">
-                  <div className="text-center">
-                    <div className="w-16 h-16 bg-green-600 rounded-2xl flex items-center justify-center mx-auto mb-4 overflow-hidden">
-                      <img
-                        src="/business-consulting-meeting-with-charts-and-strate.jpg"
-                        alt="Consulting illustration"
-                        className="w-12 h-12 object-contain"
-                      />
-                    </div>
-                    <h4 className="text-[28px] sm:text-[24px] md:text-xl font-bold text-green-700 mb-3">Consulting</h4>
-                    <p className="text-slate-700 text-base sm:text-sm leading-relaxed">
-                      Deep partnership to solve cross-border challenges, align teams, and unlock global opportunities.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-center gap-3 text-lg font-medium">
-                <div className="text-center">
-                  {/* CHANGE: Increased mobile font size from text-lg to text-xl (18px to 20px) */}
-                  {/* CHANGE: Restructured text layout for better mobile readability with line breaks and visual hierarchy */}
-                  {/* CHANGE: Added line break after "direct path" on mobile so "to global success" appears on last line */}
-                  <p className="text-xl sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent tracking-tight leading-tight">
-                    <span className="block sm:inline">Whether you want inspiration,</span>
-                    <span className="block sm:inline"> transformation,</span>
-                    <span className="block sm:inline"> or hands-on solutions</span>
-                    <span className="block mt-2">—these offerings give you a direct path</span>
-                    <span className="block sm:inline"> to global success.</span>
-                  </p>
                 </div>
               </div>
             </div>
@@ -651,7 +676,7 @@ export default function HomePage() {
 
                   <div className="p-12">
                     <div className="mb-8">
-                      {/* Reduced heading size on mobile from text-3xl to text-xl */}
+                      {/* Reduced heading size on mobile from text-xl to text-lg */}
                       <h4 className="text-xl sm:text-3xl font-bold text-slate-900 mb-6">Seminar Agenda Points:</h4>
                     </div>
 
@@ -1202,8 +1227,8 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                <a href="#coaching-workshops-consulting">
-                  <Button className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 text-lg font-semibold">
+                <a href="/contact">
+                  <Button className="w-full bg-blue-500 hover:bg-blue-600 hover:scale-105 hover:shadow-xl transition-all duration-300 text-white py-3 text-lg font-semibold">
                     Start Transformation
                   </Button>
                 </a>
@@ -1254,8 +1279,8 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                <a href="#coaching-workshops-consulting">
-                  <Button className="w-full bg-purple-500 hover:bg-purple-600 text-white py-3 text-lg font-semibold">
+                <a href="/contact">
+                  <Button className="w-full bg-purple-500 hover:bg-purple-600 hover:scale-105 hover:shadow-xl transition-all duration-300 text-white py-3 text-lg font-semibold">
                     Transform Your Team
                   </Button>
                 </a>
@@ -1306,8 +1331,8 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                <a href="#coaching-workshops-consulting">
-                  <Button className="w-full bg-green-500 hover:bg-green-600 text-white py-3 text-lg font-semibold">
+                <a href="/contact">
+                  <Button className="w-full bg-green-500 hover:bg-green-600 hover:scale-105 hover:shadow-xl transition-all duration-300 text-white py-3 text-lg font-semibold">
                     Plan Your Expansion
                   </Button>
                 </a>

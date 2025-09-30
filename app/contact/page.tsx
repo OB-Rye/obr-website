@@ -1,6 +1,6 @@
 "use client"
 
-import type React from "react"
+import React, { useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
-import { useState } from "react"
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -45,6 +44,10 @@ export default function ContactPage() {
     }
   }
 
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }))
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
@@ -59,31 +62,24 @@ export default function ContactPage() {
 
       const response = await fetch("/api/send-email", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       })
 
       const result = await response.json()
 
-      if (response.ok && result.success) {
-        // Success - show thank you message
+      if (response.ok && result?.success) {
         setSubmitted(true)
       } else {
-        throw new Error(result.message || "Failed to send email")
+        throw new Error(result?.message || "Failed to send email")
       }
     } catch (error) {
       console.error("[v0] Error sending email:", error)
-      // The form data is logged on the server for manual processing
+      // Fall back to “submitted” state even if API fails, so you get the thank-you
       setSubmitted(true)
     } finally {
       setIsSubmitting(false)
     }
-  }
-
-  const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
   if (submitted) {
@@ -116,18 +112,14 @@ export default function ContactPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30">
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-black backdrop-blur-xl border-b border-white/20 shadow-2xl">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-black/70 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+            <a href="/" className="flex items-center gap-4 hover:opacity-80 transition-opacity">
               <img src="/new-obr-logo.png" alt="OBR Logo" className="w-10 h-10 object-contain" />
               <h1 className="text-xl font-bold text-white">Ole Bent Rye</h1>
-            </div>
-            <Button
-              variant="ghost"
-              className="text-white hover:bg-white/10"
-              onClick={() => (window.location.href = "/")}
-            >
+            </a>
+            <Button variant="ghost" className="text-white hover:bg-white/10" onClick={() => (window.location.href = "/")}>
               ← Back to Home
             </Button>
           </div>
@@ -137,7 +129,7 @@ export default function ContactPage() {
       {/* Main Content */}
       <div className="pt-24 pb-16 px-4">
         <div className="max-w-4xl mx-auto">
-          {/* Welcome Message */}
+          {/* Welcome */}
           <div className="text-center mb-16">
             <div className="inline-flex items-center gap-3 bg-gradient-to-r from-emerald-500/10 to-blue-500/10 rounded-full px-6 py-3 mb-8 border border-emerald-200/30">
               <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
@@ -160,11 +152,10 @@ export default function ContactPage() {
             </div>
           </div>
 
-          {/* Contact Form */}
+          {/* Form */}
           <Card className="border-0 shadow-2xl bg-white/80 backdrop-blur-sm">
             <CardContent className="p-8 sm:p-12">
               <form onSubmit={handleSubmit} className="space-y-8">
-                {/* Required Fields */}
                 <div className="grid sm:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="firstName" className="text-slate-700 font-semibold">
@@ -209,15 +200,12 @@ export default function ContactPage() {
                   />
                 </div>
 
-                {/* Optional Fields */}
                 <div className="border-t border-slate-200 pt-8">
                   <h3 className="text-lg font-semibold text-slate-700 mb-6">Additional Information (Optional)</h3>
 
                   <div className="grid sm:grid-cols-2 gap-6 mb-6">
                     <div className="space-y-2">
-                      <Label htmlFor="company" className="text-slate-600">
-                        Company
-                      </Label>
+                      <Label htmlFor="company" className="text-slate-600">Company</Label>
                       <Input
                         id="company"
                         value={formData.company}
@@ -227,9 +215,7 @@ export default function ContactPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="country" className="text-slate-600">
-                        Country
-                      </Label>
+                      <Label htmlFor="country" className="text-slate-600">Country</Label>
                       <Input
                         id="country"
                         value={formData.country}
@@ -241,9 +227,7 @@ export default function ContactPage() {
                   </div>
 
                   <div className="space-y-2 mb-6">
-                    <Label htmlFor="phone" className="text-slate-600">
-                      Phone Number
-                    </Label>
+                    <Label htmlFor="phone" className="text-slate-600">Phone Number</Label>
                     <Input
                       id="phone"
                       type="tel"
@@ -255,7 +239,6 @@ export default function ContactPage() {
                   </div>
                 </div>
 
-                {/* Areas of Interest */}
                 <div className="border-t border-slate-200 pt-8">
                   <h3 className="text-lg font-semibold text-slate-700 mb-4">Areas of Interest</h3>
                   <p className="text-slate-600 mb-6">Select one or more areas you'd like to explore:</p>
@@ -280,21 +263,17 @@ export default function ContactPage() {
                   </div>
                 </div>
 
-                {/* Message */}
                 <div className="space-y-2">
-                  <Label htmlFor="message" className="text-slate-700 font-semibold">
-                    Your Message
-                  </Label>
+                  <Label htmlFor="message" className="text-slate-700 font-semibold">Your Message</Label>
                   <Textarea
                     id="message"
                     value={formData.message}
                     onChange={(e) => handleInputChange("message", e.target.value)}
                     className="border-slate-200 focus:border-emerald-500 focus:ring-emerald-500/20 bg-white/50 backdrop-blur-sm min-h-[120px]"
-                    placeholder="Tell me about your goals, challenges, or questions regarding cultural intelligence and global business success..."
+                    placeholder="Tell me about your goals, challenges, or questions..."
                   />
                 </div>
 
-                {/* Submit Button */}
                 <div className="pt-6">
                   <Button
                     type="submit"
@@ -315,7 +294,6 @@ export default function ContactPage() {
             </CardContent>
           </Card>
 
-          {/* Additional Contact Info */}
           <div className="mt-16 text-center">
             <div className="bg-gradient-to-r from-slate-100/80 to-blue-100/80 rounded-2xl p-8 border border-slate-200">
               <h3 className="text-xl font-bold text-slate-900 mb-4">Prefer to Connect Directly?</h3>
