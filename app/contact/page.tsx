@@ -1,3 +1,4 @@
+cat > app/contact/page.tsx <<'EOF'
 "use client";
 
 import { useState } from "react";
@@ -29,7 +30,7 @@ export default function ContactPage() {
     const form = e.currentTarget;
     const formData = new FormData(form);
 
-    // Optional honeypot check (bots will often fill this)
+    // Honeypot
     const honeypot = (formData.get("website") || "").toString();
     if (honeypot) {
       setIsSubmitting(false);
@@ -37,7 +38,6 @@ export default function ContactPage() {
       return;
     }
 
-    // Soft client-side validations mirroring server
     const name = (formData.get("name") || "").toString().trim();
     const email = (formData.get("email") || "").toString().trim();
     const message = (formData.get("message") || "").toString().trim();
@@ -63,7 +63,6 @@ export default function ContactPage() {
       return;
     }
 
-    // Collect native checkbox values
     const interests = formData.getAll("interests").map(String);
 
     try {
@@ -146,7 +145,36 @@ export default function ContactPage() {
               <Input id="phone" type="tel" name="phone" autoComplete="tel" />
             </div>
 
-            {/* Interests (use native inputs so FormData works) */}
+            {/* Interests (native inputs) */}
             <div>
               <Label className="mb-2 block">Areas of Interest</Label>
-              <div className="grid sm:grid-
+              <div className="grid sm:grid-cols-2 gap-3">
+                {interestOptions.map((interest) => (
+                  <label key={interest} className="flex items-center gap-2 border p-3 rounded-lg cursor-pointer hover:bg-slate-50">
+                    <input type="checkbox" name="interests" value={interest} className="h-4 w-4" />
+                    <span>{interest}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Message */}
+            <div>
+              <Label htmlFor="message">Message *</Label>
+              <Textarea id="message" name="message" rows={5} required maxLength={5000} />
+            </div>
+
+            {/* Error */}
+            {error && <p className="text-red-500 text-sm" aria-live="assertive">{error}</p>}
+
+            {/* Submit */}
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? "Sending..." : "Send Message"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+EOF
