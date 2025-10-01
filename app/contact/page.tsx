@@ -1,4 +1,3 @@
-cat > app/contact/page.tsx <<'EOF'
 "use client";
 
 import { useState } from "react";
@@ -13,12 +12,7 @@ export default function ContactPage() {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const interestOptions = [
-    "Seminars",
-    "Coaching",
-    "Team Workshops",
-    "Strategic Consulting",
-  ] as const;
+  const interestOptions = ["Seminars","Coaching","Team Workshops","Strategic Consulting"] as const;
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -47,21 +41,9 @@ export default function ContactPage() {
       setError("Please fill in name, email and message.");
       return;
     }
-    if (name.length > 200) {
-      setIsSubmitting(false);
-      setError("Name is too long.");
-      return;
-    }
-    if (email.length > 320) {
-      setIsSubmitting(false);
-      setError("Email is too long.");
-      return;
-    }
-    if (message.length > 5000) {
-      setIsSubmitting(false);
-      setError("Message is too long.");
-      return;
-    }
+    if (name.length > 200) { setIsSubmitting(false); setError("Name is too long."); return; }
+    if (email.length > 320) { setIsSubmitting(false); setError("Email is too long."); return; }
+    if (message.length > 5000) { setIsSubmitting(false); setError("Message is too long."); return; }
 
     const interests = formData.getAll("interests").map(String);
 
@@ -81,12 +63,8 @@ export default function ContactPage() {
       });
 
       const data = await res.json();
-
-      if (res.ok && data.success) {
-        setSubmitted(true);
-      } else {
-        throw new Error(data.error || "Failed to send message");
-      }
+      if (res.ok && data.success) setSubmitted(true);
+      else throw new Error(data.error || "Failed to send message");
     } catch (err: any) {
       setError(err?.message || "Something went wrong, please try again.");
     } finally {
@@ -100,12 +78,8 @@ export default function ContactPage() {
         <Card className="max-w-lg w-full bg-white/90 backdrop-blur-sm shadow-xl">
           <CardContent className="p-10 text-center">
             <h1 className="text-2xl font-bold mb-4">✅ Thank You!</h1>
-            <p className="text-slate-600 mb-6">
-              Your message has been sent. I’ll get back to you as soon as possible.
-            </p>
-            <Button onClick={() => (window.location.href = "/")}>
-              Return to Homepage
-            </Button>
+            <p className="text-slate-600 mb-6">Your message has been sent. I’ll get back to you as soon as possible.</p>
+            <Button onClick={() => (window.location.href = "/")}>Return to Homepage</Button>
           </CardContent>
         </Card>
       </div>
@@ -177,4 +151,3 @@ export default function ContactPage() {
     </div>
   );
 }
-EOF
