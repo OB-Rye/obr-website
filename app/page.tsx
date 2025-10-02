@@ -228,9 +228,13 @@ export default function HomePage() {
               {/* CHANGE: Increased mobile font size from text-base to text-lg for subtitle */}
               <p className="text-lg sm:text-xl lg:text-2xl font-bold leading-tight mb-12 text-slate-800 drop-shadow-lg tracking-tight">
                 <span className="text-slate-600">
-                  <span className="block text-2xl sm:text-xl lg:text-[28px]">Mastering Cultural Dynamics</span>
-                  <span className="block text-xl sm:text-xl lg:text-2xl">–from Europe and Asia to the USA,</span>
-                  <span className="block text-xl sm:text-xl lg:text-2xl">Silicon Valley and the age of AI.</span>
+                  <div className="inline-block bg-gradient-to-br from-white/90 via-blue-50/80 to-purple-50/70 backdrop-blur-sm rounded-3xl px-8 py-6 shadow-2xl border-2 border-white/60 hover:shadow-3xl transition-all duration-300">
+                    <div className="font-serif">
+                      <span className="block text-2xl sm:text-xl lg:text-[28px]">Mastering Cultural Dynamics</span>
+                      <span className="block text-xl sm:text-xl lg:text-2xl">–from Europe and Asia to the USA,</span>
+                      <span className="block text-xl sm:text-xl lg:text-2xl">Silicon Valley and the age of AI.</span>
+                    </div>
+                  </div>
                 </span>
               </p>
 
@@ -510,11 +514,34 @@ export default function HomePage() {
                   </div>
                 </div>
 
+                {/* START_MERGE_BLOCK */}
                 <div className="text-center mt-16">
-                  <Button className="w-full bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700 hover:scale-105 hover:shadow-xl transition-all duration-300 border-0 text-lg">
-                    Ole Bent's Cultural Framework →
-                  </Button>
+                  <div className="inline-block bg-gradient-to-br from-white/90 via-emerald-50/80 to-blue-50/70 backdrop-blur-sm rounded-3xl px-8 py-8 shadow-2xl border-2 border-white/60 hover:shadow-3xl transition-all duration-300">
+                    <h4 className="text-xl sm:text-2xl font-bold mb-6 bg-gradient-to-r from-emerald-600 to-blue-600 bg-clip-text text-transparent font-serif">
+                      Ole Bent's Cultural Framework
+                    </h4>
+                    <div className="flex flex-wrap gap-4 mt-6">
+                      {/* Open in new tab */}
+                      <a
+                        href="/files/Ole-Bents-Cultural-Framework.pdf"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-green-600 to-blue-600 px-6 py-3 text-white font-semibold shadow hover:opacity-90 transition"
+                      >
+                        View Online →
+                      </a>
+                      {/* Download directly */}
+                      <a
+                        href="/files/Ole-Bents-Cultural-Framework.pdf"
+                        download="Ole-Bents-Cultural-Framework.pdf"
+                        className="inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-green-600 to-blue-600 px-6 py-3 text-white font-semibold shadow hover:opacity-90 transition"
+                      >
+                        Download PDF ⬇
+                      </a>
+                    </div>
+                  </div>
                 </div>
+                {/* END_MERGE_BLOCK */}
               </div>
             </div>
           </div>
