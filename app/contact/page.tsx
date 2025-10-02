@@ -1,153 +1,154 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+
+type Status = "idle" | "loading" | "success" | "error";
 
 export default function ContactPage() {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const interestOptions = ["Seminars","Coaching","Team Workshops","Strategic Consulting"] as const;
+  const [status, setStatus] = useState<Status>("idle");
+  const [error, setError] = useState<string>("");
+  const [messageLen, setMessageLen] = useState<number>(0);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (isSubmitting) return;
-
-    setIsSubmitting(true);
-    setError(null);
+    setStatus("loading");
+    setError("");
 
     const form = e.currentTarget;
     const formData = new FormData(form);
 
-    // Honeypot
-    const honeypot = (formData.get("website") || "").toString();
-    if (honeypot) {
-      setIsSubmitting(false);
-      setError("Something went wrong, please try again.");
+    // Honeypot (simple spam trap): if filled, abort silently
+    if (String(formData.get("company") || "").trim() !== "") {
+      setStatus("success"); // pretend success to bots
+      form.reset();
+      setMessageLen(0);
       return;
     }
 
-    const name = (formData.get("name") || "").toString().trim();
-    const email = (formData.get("email") || "").toString().trim();
-    const message = (formData.get("message") || "").toString().trim();
+    const payload = {
+      name: String(formData.get("name") ?? "").trim(),
+      email: String(formData.get("email") ?? "").trim(),
+      message: String(formData.get("message") ?? "").trim(),
+    };
 
-    if (!name || !email || !message) {
-      setIsSubmitting(false);
-      setError("Please fill in name, email and message.");
+    // client-side guard (mirrors server validation)
+    if (!payload.name || !payload.email || !payload.message) {
+      setError("All fields (name, email, message) are required.");
+      setStatus("error");
       return;
     }
-    if (name.length > 200) { setIsSubmitting(false); setError("Name is too long."); return; }
-    if (email.length > 320) { setIsSubmitting(false); setError("Email is too long."); return; }
-    if (message.length > 5000) { setIsSubmitting(false); setError("Message is too long."); return; }
-
-    const interests = formData.getAll("interests").map(String);
 
     try {
       const res = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          email,
-          company: (formData.get("company") || "").toString(),
-          country: (formData.get("country") || "").toString(),
-          phone: (formData.get("phone") || "").toString(),
-          interests,
-          message,
-        }),
+        body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
-      if (res.ok && data.success) setSubmitted(true);
-      else throw new Error(data.error || "Failed to send message");
-    } catch (err: any) {
-      setError(err?.message || "Something went wrong, please try again.");
-    } finally {
-      setIsSubmitting(false);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data?.error || "Something went wrong. Please try again.");
+        setStatus("error");
+        return;
+      }
+
+      setStatus("success");
+      form.reset();
+      setMessageLen(0);
+    } catch {
+      setError("Network error. Please check your connection and try again.");
+      setStatus("error");
     }
   }
 
-  if (submitted) {
-    return (
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <Card className="max-w-lg w-full bg-white/90 backdrop-blur-sm shadow-xl">
-          <CardContent className="p-10 text-center">
-            <h1 className="text-2xl font-bold mb-4">✅ Thank You!</h1>
-            <p className="text-slate-600 mb-6">Your message has been sent. I’ll get back to you as soon as possible.</p>
-            <Button onClick={() => (window.location.href = "/")}>Return to Homepage</Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <Card className="max-w-2xl w-full bg-white/90 backdrop-blur-sm shadow-xl">
-        <CardContent className="p-8 sm:p-12">
-          <h1 className="text-3xl font-bold mb-8 text-center">Contact Me</h1>
-          <form onSubmit={handleSubmit} className="space-y-6" noValidate>
-            {/* Honeypot (hidden) */}
-            <input type="text" name="website" className="hidden" tabIndex={-1} autoComplete="off" />
+    <main className="mx-auto max-w-2xl px-4 py-12">
+      <h1 className="mb-2 text-3xl font-semibold">Contact</h1>
+      <p className="mb-8 text-sm text-gray-600">
+        Send a message and you’ll receive an automatic confirmation email. We’ll reply shortly.
+      </p>
 
-            {/* Basic Fields */}
-            <div>
-              <Label htmlFor="name">Name *</Label>
-              <Input id="name" name="name" required autoComplete="name" maxLength={200} />
-            </div>
-            <div>
-              <Label htmlFor="email">Email *</Label>
-              <Input id="email" type="email" name="email" required autoComplete="email" maxLength={320} />
-            </div>
+      <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+        {/* Name */}
+        <div>
+          <label htmlFor="name" className="mb-1 block text-sm font-medium">
+            Name
+          </label>
+          <input
+            id="name"
+            name="name"
+            type="text"
+            required
+            autoComplete="name"
+            className="w-full rounded-md border px-3 py-2 outline-none ring-0 focus:border-gray-800"
+            placeholder="Your name"
+          />
+        </div>
 
-            {/* Extra Fields */}
-            <div>
-              <Label htmlFor="company">Company</Label>
-              <Input id="company" name="company" autoComplete="organization" />
-            </div>
-            <div>
-              <Label htmlFor="country">Country</Label>
-              <Input id="country" name="country" autoComplete="country-name" />
-            </div>
-            <div>
-              <Label htmlFor="phone">Phone</Label>
-              <Input id="phone" type="tel" name="phone" autoComplete="tel" />
-            </div>
+        {/* Email */}
+        <div>
+          <label htmlFor="email" className="mb-1 block text-sm font-medium">
+            Email
+          </label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            required
+            autoComplete="email"
+            className="w-full rounded-md border px-3 py-2 outline-none ring-0 focus:border-gray-800"
+            placeholder="you@example.com"
+          />
+        </div>
 
-            {/* Interests (native inputs) */}
-            <div>
-              <Label className="mb-2 block">Areas of Interest</Label>
-              <div className="grid sm:grid-cols-2 gap-3">
-                {interestOptions.map((interest) => (
-                  <label key={interest} className="flex items-center gap-2 border p-3 rounded-lg cursor-pointer hover:bg-slate-50">
-                    <input type="checkbox" name="interests" value={interest} className="h-4 w-4" />
-                    <span>{interest}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
+        {/* Message */}
+        <div>
+          <label htmlFor="message" className="mb-1 block text-sm font-medium">
+            Message
+          </label>
+          <textarea
+            id="message"
+            name="message" // MUST match backend
+            required
+            rows={7}
+            maxLength={5000}
+            onChange={(e) => setMessageLen(e.currentTarget.value.length)}
+            className="w-full resize-y rounded-md border px-3 py-2 outline-none ring-0 focus:border-gray-800"
+            placeholder="Write your message here…"
+          />
+          <div className="mt-1 text-right text-xs text-gray-500">
+            {messageLen.toLocaleString()}/5,000
+          </div>
+        </div>
 
-            {/* Message */}
-            <div>
-              <Label htmlFor="message">Message *</Label>
-              <Textarea id="message" name="message" rows={5} required maxLength={5000} />
-            </div>
+        {/* Honeypot (hidden from humans) */}
+        <div aria-hidden="true" className="hidden">
+          <label htmlFor="company">Company</label>
+          <input id="company" name="company" type="text" tabIndex={-1} autoComplete="off" />
+        </div>
 
-            {/* Error */}
-            {error && <p className="text-red-500 text-sm" aria-live="assertive">{error}</p>}
+        <button
+          type="submit"
+          disabled={status === "loading"}
+          className="inline-flex items-center rounded-md bg-black px-4 py-2 text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {status === "loading" ? "Sending…" : "Send"}
+        </button>
 
-            {/* Submit */}
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? "Sending..." : "Send Message"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+        {/* Status messages */}
+        {status === "success" && (
+          <p className="text-sm text-green-700">
+            Message sent! Check your inbox for a confirmation email.
+          </p>
+        )}
+        {status === "error" && (
+          <p className="text-sm text-red-700">{error}</p>
+        )}
+
+        <p className="pt-2 text-xs text-gray-500">
+          By submitting, you agree we may email you to respond to your inquiry.
+        </p>
+      </form>
+    </main>
   );
 }
