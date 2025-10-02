@@ -1,116 +1,131 @@
+// app/api/contact/route.ts
 import { NextResponse } from "next/server";
-import sgMail from "@sendgrid/mail";
 
-export const runtime = "nodejs"; // explicit runtime
+export const runtime = "nodejs"; // ensure Node runtime on Vercel
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
+type Payload = {
+  firstName?: string;
+  lastName?: string;
+  name?: string;              // fallback if V0 uses single name field
+  email: string;
+  company?: string;
+  country?: string;
+  phone?: string;
+  interests?: string[] | string;
+  subject?: string;
+  message: string;
+  _hp?: string;               // honeypot
+};
 
-function escapeHtml(str: string) {
-  return String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+const ADMIN_TO = "obrye@obrye.global";
+const ADMIN_CC = "obrye1@gmail.com";
+const ADMIN_BCC = "obrye@obrye.global";
+
+function esc(s: string) {
+  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
+}
+
+function adminHtml(p: Payload) {
+  const interests = Array.isArray(p.interests) ? p.interests.join(", ") : (p.interests || "");
+  const name = (p.firstName || p.lastName)
+    ? `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim()
+    : (p.name ?? "");
+  return `
+    <div style="font-family:system-ui,Segoe UI,Arial,sans-serif">
+      <h2>New Contact Form Submission</h2>
+      <table cellspacing="0" cellpadding="6" style="border-collapse:collapse">
+        ${[
+          ["Name", name],
+          ["Email", p.email],
+          ["Company", p.company || ""],
+          ["Country", p.country || ""],
+          ["Phone", p.phone || ""],
+          ["Interests", interests],
+        ].map(([k, v]) => `<tr><td style="font-weight:600">${k}</td><td>${esc(String(v))}</td></tr>`).join("")}
+      </table>
+      <h3 style="margin-top:16px">Message</h3>
+      <div style="white-space:pre-wrap;border:1px solid #eee;padding:12px;border-radius:8px">${esc(p.message)}</div>
+    </div>
+  `;
+}
+
+function userHtml(p: Payload) {
+  const first = p.firstName || p.name || "there";
+  return `
+    <div style="font-family:system-ui,Segoe UI,Arial,sans-serif">
+      <p>Hi ${esc(first)},</p>
+      <p>Thanks for reaching out. I’ve received your message and will respond as soon as I can.</p>
+      <p style="margin-top:12px">— Ole Bent Rye</p>
+    </div>
+  `;
 }
 
 export async function POST(req: Request) {
   try {
-    const { name, email, message } = await req.json();
+    const body = (await req.json()) as Payload;
 
-    if (!name || !email || !message) {
-      return NextResponse.json(
-        { success: false, error: "All fields (name, email, message) are required." },
-        { status: 400 }
-      );
+    // Honeypot: silently succeed if filled
+    if (body._hp && body._hp.trim() !== "") return NextResponse.json({ success: true });
+
+    const name = (body.firstName || body.lastName)
+      ? `${body.firstName ?? ""} ${body.lastName ?? ""}`.trim()
+      : (body.name ?? "");
+
+    if (!name || !body.email || !body.message) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    const timestamp = new Date().toLocaleString("en-GB", { timeZone: "UTC" });
+    const apiKey = process.env.SENDGRID_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json({ error: "SENDGRID_API_KEY not configured" }, { status: 500 });
+    }
 
-    // -------- 1) Email to you (To + CC + BCC) --------
-    await sgMail.send({
-      from: "OBR Contact <no-reply@obrye.global>", // must be verified in SendGrid
-      to: ["obrye@obrye.global"],
-      cc: ["obrye1@gmail.com"],
-      bcc: ["archive@obrye.global"],
-      replyTo: email,
-      subject: `📩 New contact from ${name}`,
-      text: `You have received a new contact form submission.
+    const interests = Array.isArray(body.interests) ? body.interests : body.interests ? [body.interests] : [];
 
-Name: ${name}
-Email: ${email}
-Time: ${timestamp} (UTC)
+    // --- Admin email (to, cc, bcc) ---
+    const adminMail = {
+      personalizations: [
+        {
+          to: [{ email: ADMIN_TO }],
+          cc: [{ email: ADMIN_CC }],
+          bcc: [{ email: ADMIN_BCC }],
+          subject: body.subject || "New website contact",
+        },
+      ],
+      from: { email: "no-reply@obrye.global", name: "OBR Website" },
+      reply_to: { email: body.email, name },
+      content: [{ type: "text/html", value: adminHtml({ ...body, interests }) }],
+    };
 
-Message:
---------------------------------
-${message}
---------------------------------
+    // --- User confirmation (with BCC to you) ---
+    const userMail = {
+      personalizations: [
+        {
+          to: [{ email: body.email }],
+          bcc: [{ email: ADMIN_BCC }],
+          subject: "Thanks for your message",
+        },
+      ],
+      from: { email: "no-reply@obrye.global", name: "Ole Bent Rye" },
+      content: [{ type: "text/html", value: userHtml(body) }],
+      headers: { "X-Entity-Ref-ID": String(Date.now()) }, // avoid provider dedupe
+    };
 
-Submitted via: obrye.global/contact
-`,
-      html: `
-        <h2>📩 New Contact Form Submission</h2>
-        <p><strong>Name:</strong> ${escapeHtml(name)}</p>
-        <p><strong>Email:</strong> ${escapeHtml(email)}</p>
-        <p><strong>Time:</strong> ${escapeHtml(timestamp)} (UTC)</p>
-        <p><strong>Message:</strong></p>
-        <blockquote style="border-left:3px solid #ccc; padding-left:10px; color:#555; white-space:pre-wrap;">
-          ${escapeHtml(message)}
-        </blockquote>
-        <hr />
-        <p style="font-size:0.9em; color:#888;">
-          Submitted via <a href="https://obrye.global/contact">obrye.global/contact</a>
-        </p>
-      `,
-    });
+    const headers = {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    };
 
-    // -------- 2) Auto-confirmation to sender --------
-    await sgMail.send({
-      from: "OBR <no-reply@obrye.global>",
-      to: email,
-      subject: `✅ Thank you, ${name} — we received your message`,
-      text: `Hi ${name},
+    const [r1, r2] = await Promise.all([
+      fetch("https://api.sendgrid.com/v3/mail/send", { method: "POST", headers, body: JSON.stringify(adminMail) }),
+      fetch("https://api.sendgrid.com/v3/mail/send", { method: "POST", headers, body: JSON.stringify(userMail) }),
+    ]);
 
-Thank you for contacting OBR. We’ve received your message and will get back to you as soon as possible.
-
-At OBR, we believe that meaningful connections across cultures and borders create opportunities for growth and trust. Your message is important to us, and we’ll make sure it gets the attention it deserves.
-
-Here’s a copy of what you sent:
---------------------------------
-${message}
---------------------------------
-
-Warm regards,
-Ole Bent Rye
-OBR – Mastering Cultural Dynamics
-🌐 obrye.global
-🔗 linkedin.com/in/olebentrye
-`,
-      html: `
-        <p>Hi ${escapeHtml(name)},</p>
-        <p>Thank you for reaching out to <strong>OBR</strong>. We’ve received your message and will respond as soon as possible.</p>
-        <p>At OBR, we believe that meaningful connections across cultures and borders create opportunities for growth and trust. Your message is important to us, and we’ll make sure it gets the attention it deserves.</p>
-        <hr />
-        <p><strong>Your message:</strong></p>
-        <blockquote style="border-left:3px solid #ccc; padding-left:10px; color:#555; white-space:pre-wrap;">
-          ${escapeHtml(message)}
-        </blockquote>
-        <hr />
-        <p>
-          Warm regards,<br/>
-          Ole Bent Rye<br/>
-          <em>OBR – Mastering Cultural Dynamics</em><br/>
-          🌐 <a href="https://obrye.global">obrye.global</a><br/>
-          🔗 <a href="https://www.linkedin.com/in/olebentrye">linkedin.com/in/olebentrye</a>
-        </p>
-      `,
-    });
+    if (!r1.ok) return NextResponse.json({ error: `SendGrid admin mail failed: ${await r1.text()}` }, { status: 502 });
+    if (!r2.ok) return NextResponse.json({ error: `SendGrid user mail failed: ${await r2.text()}` }, { status: 502 });
 
     return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("Error in /api/contact:", error);
-    return NextResponse.json({ success: false, error: "Server error" }, { status: 500 });
+  } catch (err: any) {
+    return NextResponse.json({ error: err?.message ?? "Unexpected error" }, { status: 500 });
   }
-}
-
-export async function GET() {
-  return NextResponse.json({ message: "Contact API is live" });
 }
