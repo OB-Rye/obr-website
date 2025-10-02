@@ -1,6 +1,9 @@
-
 import { NextResponse } from "next/server";
-import nodemailer from "nodemailer";
+import sgMail from "@sendgrid/mail";
+
+export const runtime = "nodejs"; // explicit runtime
+
+sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
 
 function escapeHtml(str: string) {
   return String(str)
@@ -20,33 +23,14 @@ export async function POST(req: Request) {
       );
     }
 
-    if (!process.env.SENDGRID_API_KEY) {
-      console.error("Missing SENDGRID_API_KEY env var");
-      return NextResponse.json(
-        { success: false, error: "Email configuration error." },
-        { status: 500 }
-      );
-    }
-
     const timestamp = new Date().toLocaleString("en-GB", { timeZone: "UTC" });
 
-    // Configure Nodemailer with SendGrid SMTP
-    const transporter = nodemailer.createTransport({
-      host: "smtp.sendgrid.net",
-      port: 587,
-      secure: false,
-      auth: {
-        user: "apikey", // fixed username for SendGrid
-        pass: process.env.SENDGRID_API_KEY!,
-      },
-    });
-
-    // -------- 1) Email to YOU (with CC + BCC) --------
-    await transporter.sendMail({
+    // -------- 1) Email to you (To + CC + BCC) --------
+    await sgMail.send({
       from: "OBR Contact <no-reply@obrye.global>", // must be verified in SendGrid
-      to: "obrye@obrye.global",
-      cc: "obrye1@gmail.com",
-      bcc: "archive@obrye.global", // hidden backup copy
+      to: ["obrye@obrye.global"],
+      cc: ["obrye1@gmail.com"],
+      bcc: ["archive@obrye.global"],
       replyTo: email,
       subject: `📩 New contact from ${name}`,
       text: `You have received a new contact form submission.
@@ -78,8 +62,8 @@ Submitted via: obrye.global/contact
       `,
     });
 
-    // -------- 2) Auto-confirmation back to sender --------
-    await transporter.sendMail({
+    // -------- 2) Auto-confirmation to sender --------
+    await sgMail.send({
       from: "OBR <no-reply@obrye.global>",
       to: email,
       subject: `✅ Thank you, ${name} — we received your message`,
