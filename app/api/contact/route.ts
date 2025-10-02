@@ -19,7 +19,7 @@ type Payload = {
 
 const ADMIN_TO = "obrye@obrye.global";
 const ADMIN_CC = "obrye1@gmail.com";
-const ADMIN_BCC = "obrye@obrye.global";
+const ADMIN_BCC = "obrye@obrye.global"; // used only on the user confirmation
 
 function esc(s: string) {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
@@ -82,13 +82,12 @@ export async function POST(req: Request) {
 
     const interests = Array.isArray(body.interests) ? body.interests : body.interests ? [body.interests] : [];
 
-    // --- Admin email (to, cc, bcc) ---
+    // --- Admin email (TO + CC only; no BCC to avoid duplication) ---
     const adminMail = {
       personalizations: [
         {
           to: [{ email: ADMIN_TO }],
           cc: [{ email: ADMIN_CC }],
-          bcc: [{ email: ADMIN_BCC }],
           subject: body.subject || "New website contact",
         },
       ],
