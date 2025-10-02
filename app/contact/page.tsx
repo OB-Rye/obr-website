@@ -1,39 +1,47 @@
 "use client";
-
 import { useState } from "react";
 
-type Status = "idle" | "loading" | "success" | "error";
-
 export default function ContactPage() {
-  const [status, setStatus] = useState<Status>("idle");
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [error, setError] = useState<string>("");
-  const [messageLen, setMessageLen] = useState<number>(0);
 
+  // 🚀 Submit handler: sends all fields to /api/contact
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setStatus("loading");
     setError("");
 
     const form = e.currentTarget;
-    const formData = new FormData(form);
+    const fd = new FormData(form);
 
-    // Honeypot (simple spam trap): if filled, abort silently
-    if (String(formData.get("company") || "").trim() !== "") {
-      setStatus("success"); // pretend success to bots
+    // Honeypot spam trap
+    if (String(fd.get("_hp") || "").trim() !== "") {
+      setStatus("success");
       form.reset();
-      setMessageLen(0);
       return;
     }
 
-    const payload = {
-      name: String(formData.get("name") ?? "").trim(),
-      email: String(formData.get("email") ?? "").trim(),
-      message: String(formData.get("message") ?? "").trim(),
-    };
+    // Collect all fields into JSON
+    const data: Record<string, any> = {};
+    fd.forEach((value, key) => {
+      if (data[key] !== undefined) {
+        data[key] = Array.isArray(data[key]) ? [...data[key], value] : [data[key], value];
+      } else {
+        data[key] = value;
+      }
+    });
 
-    // client-side guard (mirrors server validation)
-    if (!payload.name || !payload.email || !payload.message) {
-      setError("All fields (name, email, message) are required.");
+    // Normalize common fields
+    ["firstName","lastName","name","email","subject","phone","company","country","message"].forEach(k => {
+      if (typeof data[k] === "string") data[k] = (data[k] as string).trim();
+    });
+
+    // Validate: require name, email, message
+    const firstName = String(data.firstName ?? "");
+    const lastName  = String(data.lastName ?? "");
+    const fullName  = (firstName || lastName) ? `${firstName} ${lastName}`.trim() : String(data.name ?? "");
+    if (!fullName || !data.email || !data.message) {
+      setError("Please provide your name, email, and message.");
       setStatus("error");
       return;
     }
@@ -42,113 +50,111 @@ export default function ContactPage() {
       const res = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(data),
       });
 
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setError(data?.error || "Something went wrong. Please try again.");
+        const body = await res.json().catch(() => ({}));
+        setError(body?.error || "Something went wrong. Please try again.");
         setStatus("error");
         return;
       }
 
       setStatus("success");
       form.reset();
-      setMessageLen(0);
     } catch {
-      setError("Network error. Please check your connection and try again.");
+      setError("Network error. Please try again.");
       setStatus("error");
     }
   }
 
   return (
-    <main className="mx-auto max-w-2xl px-4 py-12">
-      <h1 className="mb-2 text-3xl font-semibold">Contact</h1>
-      <p className="mb-8 text-sm text-gray-600">
-        Send a message and you’ll receive an automatic confirmation email. We’ll reply shortly.
+    <div className="max-w-2xl mx-auto px-4 py-10">
+      <h1 className="text-3xl font-semibold mb-2">Contact</h1>
+      <p className="text-gray-600 mb-8">
+        Whether you&apos;re curious about my seminars, exploring coaching, or
+        interested in consulting, I would love to hear from you. Please leave me a note below, and I&apos;ll get back to you as soon as I can.
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-        {/* Name */}
-        <div>
-          <label htmlFor="name" className="mb-1 block text-sm font-medium">
-            Name
-          </label>
-          <input
-            id="name"
-            name="name"
-            type="text"
-            required
-            autoComplete="name"
-            className="w-full rounded-md border px-3 py-2 outline-none ring-0 focus:border-gray-800"
-            placeholder="Your name"
-          />
+        {/* Honeypot */}
+        <input type="text" name="_hp" tabIndex={-1} autoComplete="off" className="hidden" />
+
+        {/* First + Last name */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="block text-sm font-medium mb-1" htmlFor="firstName">First Name *</label>
+            <input id="firstName" name="firstName" required className="w-full border rounded px-3 py-2" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1" htmlFor="lastName">Last Name *</label>
+            <input id="lastName" name="lastName" required className="w-full border rounded px-3 py-2" />
+          </div>
         </div>
 
         {/* Email */}
         <div>
-          <label htmlFor="email" className="mb-1 block text-sm font-medium">
-            Email
-          </label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            required
-            autoComplete="email"
-            className="w-full rounded-md border px-3 py-2 outline-none ring-0 focus:border-gray-800"
-            placeholder="you@example.com"
-          />
+          <label className="block text-sm font-medium mb-1" htmlFor="email">Email Address *</label>
+          <input id="email" name="email" type="email" required className="w-full border rounded px-3 py-2" />
+        </div>
+
+        {/* Company + Country */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="block text-sm font-medium mb-1" htmlFor="company">Company</label>
+            <input id="company" name="company" className="w-full border rounded px-3 py-2" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1" htmlFor="country">Country</label>
+            <input id="country" name="country" className="w-full border rounded px-3 py-2" />
+          </div>
+        </div>
+
+        {/* Phone */}
+        <div>
+          <label className="block text-sm font-medium mb-1" htmlFor="phone">Phone Number</label>
+          <input id="phone" name="phone" className="w-full border rounded px-3 py-2" placeholder="+1 (555) 123-4567" />
+        </div>
+
+        {/* Areas of Interest */}
+        <div>
+          <p className="text-sm font-medium mb-2">Areas of Interest</p>
+          <p className="text-xs text-gray-500 mb-3">Select one or more areas you&apos;d like to explore:</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="flex items-center gap-2 border rounded px-3 py-2">
+              <input type="checkbox" name="interests" value="Seminars" /> <span>Seminars</span>
+            </label>
+            <label className="flex items-center gap-2 border rounded px-3 py-2">
+              <input type="checkbox" name="interests" value="Coaching" /> <span>Coaching</span>
+            </label>
+            <label className="flex items-center gap-2 border rounded px-3 py-2">
+              <input type="checkbox" name="interests" value="Team Workshops" /> <span>Team Workshops</span>
+            </label>
+            <label className="flex items-center gap-2 border rounded px-3 py-2">
+              <input type="checkbox" name="interests" value="Strategic Consulting" /> <span>Strategic Consulting</span>
+            </label>
+          </div>
         </div>
 
         {/* Message */}
         <div>
-          <label htmlFor="message" className="mb-1 block text-sm font-medium">
-            Message
-          </label>
-          <textarea
-            id="message"
-            name="message" // MUST match backend
-            required
-            rows={7}
-            maxLength={5000}
-            onChange={(e) => setMessageLen(e.currentTarget.value.length)}
-            className="w-full resize-y rounded-md border px-3 py-2 outline-none ring-0 focus:border-gray-800"
-            placeholder="Write your message here…"
-          />
-          <div className="mt-1 text-right text-xs text-gray-500">
-            {messageLen.toLocaleString()}/5,000
-          </div>
+          <label className="block text-sm font-medium mb-1" htmlFor="message">Your Message *</label>
+          <textarea id="message" name="message" required rows={6} className="w-full border rounded px-3 py-2" placeholder="Tell me about your goals, challenges, or questions…"></textarea>
         </div>
 
-        {/* Honeypot (hidden from humans) */}
-        <div aria-hidden="true" className="hidden">
-          <label htmlFor="company">Company</label>
-          <input id="company" name="company" type="text" tabIndex={-1} autoComplete="off" />
-        </div>
-
+        {/* Submit button */}
         <button
           type="submit"
           disabled={status === "loading"}
-          className="inline-flex items-center rounded-md bg-black px-4 py-2 text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full sm:w-auto bg-blue-600 text-white px-5 py-2 rounded hover:bg-blue-700 disabled:opacity-60"
         >
-          {status === "loading" ? "Sending…" : "Send"}
+          {status === "loading" ? "Sending…" : "Send Message"}
         </button>
 
         {/* Status messages */}
-        {status === "success" && (
-          <p className="text-sm text-green-700">
-            Message sent! Check your inbox for a confirmation email.
-          </p>
-        )}
-        {status === "error" && (
-          <p className="text-sm text-red-700">{error}</p>
-        )}
-
-        <p className="pt-2 text-xs text-gray-500">
-          By submitting, you agree we may email you to respond to your inquiry.
-        </p>
+        {status === "error" && <p className="text-red-600 text-sm">{error}</p>}
+        {status === "success" && <p className="text-green-700 text-sm">✅ Message sent! Check your email for confirmation.</p>}
       </form>
-    </main>
+    </div>
   );
 }
