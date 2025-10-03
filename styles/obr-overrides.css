@@ -1,0 +1,28 @@
+@layer components {
+  .card {
+    @apply bg-card text-card-foreground border border-border
+           rounded-[var(--radius-xl)]
+           shadow-[0_10px_30px_rgba(0,0,0,.08)];
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center font-medium
+           rounded-[var(--radius-lg)] px-5 py-3
+           bg-primary text-primary-foreground
+           hover:opacity-95
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-ring
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .label { @apply text-sm font-medium text-muted-foreground; }
+  .input {
+    @apply w-full bg-white/90 dark:bg-black/20
+           border border-input rounded-[var(--radius-lg)]
+           px-4 py-3 outline-none
+           focus-visible:ring-2 focus-visible:ring-ring
+           focus-visible:border-transparent;
+  }
+  textarea.input { @apply min-h-36 resize-y; }
+  .checkcard {
+    @apply flex items-center gap-3 rounded-[var(--radius-lg)]
+           border border-input p-3;
+  }
+}
