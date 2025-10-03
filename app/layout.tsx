@@ -2,9 +2,10 @@ import type React from "react";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Manrope } from "next/font/google";
-import { Geist, Geist_Mono } from "geist/font";   // 👈 added Geist fonts
-import "../styles/globals.css";                   // 👈 use correct path
-import "../styles/obr-overrides.css";             // 👈 new overrides file
+import { GeistSans } from "geist/font/sans";   // ✅ correct import
+import { GeistMono } from "geist/font/mono";   // ✅ correct import
+import "../styles/globals.css";
+import "../styles/obr-overrides.css";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -36,8 +37,8 @@ export default function RootLayout({
       className={`
         ${inter.variable} 
         ${manrope.variable} 
-        ${Geist.variable} 
-        ${Geist_Mono.variable} 
+        ${GeistSans.variable} 
+        ${GeistMono.variable} 
         antialiased
       `}
     >
@@ -45,3 +46,4 @@ export default function RootLayout({
     </html>
   );
 }
+
