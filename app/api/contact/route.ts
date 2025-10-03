@@ -2,7 +2,7 @@
 import { NextResponse } from "next/server";
 import sgMail from "@sendgrid/mail";
 
-export const runtime = "nodejs"; // SendGrid requires Node runtime
+export const runtime = "nodejs"; // ensure Node runtime on Vercel
 
 type Payload = {
   firstName?: string;
@@ -28,23 +28,35 @@ function joinInterests(v: string[] | string | undefined) {
 }
 
 async function sendViaSendGrid(data: Required<Pick<Payload, "email">> & Payload) {
-  const API_KEY = process.env.SENDGRID_API_KEY;
-  const FROM = process.env.SENDGRID_FROM;
+  const API_KEY = process.env.SENDGRID_API_KEY?.trim();
+  // Fallback: allow either SENDGRID_FROM or MAIL_FROM
+  const FROM =
+    process.env.SENDGRID_FROM?.trim() ||
+    process.env.MAIL_FROM?.trim() ||
+    "";
 
   if (!API_KEY || !FROM) {
-    return { ok: false, code: "SG_MISSING_CONFIG", message: "SendGrid not configured" };
+    return {
+      ok: false,
+      code: "SG_MISSING_CONFIG",
+      message: "SendGrid not configured",
+      details: {
+        has_SENDGRID_API_KEY: !!API_KEY,
+        has_SENDGRID_FROM: !!process.env.SENDGRID_FROM,
+        has_MAIL_FROM: !!process.env.MAIL_FROM,
+      },
+    };
   }
 
   sgMail.setApiKey(API_KEY);
 
-  // Admin recipients for the inbound notification
+  // Admin recipients for inbound notification
   const toAddresses = (process.env.CONTACT_TO || "obrye@obrye.global,obrye1@gmail.com")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
 
-  // Who should be BCC'd on the confirmation back to the sender
-  // You asked specifically to always receive a copy:
+  // Who should be BCC’d on the confirmation back to the sender
   const confirmationBcc = (process.env.CONFIRMATION_BCC || "obrye@obrye.global")
     .split(",")
     .map((s) => s.trim())
@@ -91,7 +103,7 @@ obrye@obrye.global
     await sgMail.send({
       to: toAddresses,
       from: FROM,
-      replyTo: data.email,
+      replyTo: reqd(data.email) ? data.email : undefined,
       subject,
       text: ownerText,
     } as any);
@@ -101,7 +113,7 @@ obrye@obrye.global
       await sgMail.send({
         to: data.email,
         from: FROM,
-        bcc: confirmationBcc, // <-- copy of confirmation to you
+        bcc: confirmationBcc, // copy of confirmation to you
         subject: "Thanks — I received your message",
         text: confirmText,
       } as any);
@@ -129,9 +141,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true });
     }
 
+    // Basic validation
     if (!reqd(data.email)) {
       return NextResponse.json(
         { success: false, message: "Email is required." },
+        { status: 400 }
+      );
+    }
+    if (!reqd(data.message)) {
+      return NextResponse.json(
+        { success: false, message: "Message is required." },
         { status: 400 }
       );
     }
