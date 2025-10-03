@@ -1,130 +1,147 @@
 // app/api/contact/route.ts
 import { NextResponse } from "next/server";
+import sgMail from "@sendgrid/mail";
 
-export const runtime = "nodejs"; // ensure Node runtime on Vercel
+// Force Node.js runtime (not Edge) so SendGrid works
+export const runtime = "nodejs";
 
-type Payload = {
+type Body = {
   firstName?: string;
   lastName?: string;
-  name?: string;              // fallback if V0 uses single name field
-  email: string;
+  email?: string;
+  phone?: string;
   company?: string;
   country?: string;
-  phone?: string;
-  interests?: string[] | string;
   subject?: string;
-  message: string;
-  _hp?: string;               // honeypot
+  message?: string;
+  interests?: string[] | string;
+  _hp?: string | null; // honeypot
 };
 
-const ADMIN_TO = "obrye@obrye.global";
-const ADMIN_CC = "obrye1@gmail.com";
-const ADMIN_BCC = "obrye@obrye.global"; // used only on the user confirmation
-
-function esc(s: string) {
-  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
-}
-
-function adminHtml(p: Payload) {
-  const interests = Array.isArray(p.interests) ? p.interests.join(", ") : (p.interests || "");
-  const name = (p.firstName || p.lastName)
-    ? `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim()
-    : (p.name ?? "");
-  return `
-    <div style="font-family:system-ui,Segoe UI,Arial,sans-serif">
-      <h2>New Contact Form Submission</h2>
-      <table cellspacing="0" cellpadding="6" style="border-collapse:collapse">
-        ${[
-          ["Name", name],
-          ["Email", p.email],
-          ["Company", p.company || ""],
-          ["Country", p.country || ""],
-          ["Phone", p.phone || ""],
-          ["Interests", interests],
-        ].map(([k, v]) => `<tr><td style="font-weight:600">${k}</td><td>${esc(String(v))}</td></tr>`).join("")}
-      </table>
-      <h3 style="margin-top:16px">Message</h3>
-      <div style="white-space:pre-wrap;border:1px solid #eee;padding:12px;border-radius:8px">${esc(p.message)}</div>
-    </div>
-  `;
-}
-
-function userHtml(p: Payload) {
-  const first = p.firstName || p.name || "there";
-  return `
-    <div style="font-family:system-ui,Segoe UI,Arial,sans-serif">
-      <p>Hi ${esc(first)},</p>
-      <p>Thanks for reaching out. I’ve received your message and will respond as soon as I can.</p>
-      <p style="margin-top:12px">— Ole Bent Rye</p>
-    </div>
-  `;
+function required(v: unknown): v is string {
+  return typeof v === "string" && v.trim().length > 0;
 }
 
 export async function POST(req: Request) {
   try {
-    const body = (await req.json()) as Payload;
+    // 0) Parse + validate
+    const data = (await req.json()) as Body;
 
-    // Honeypot: silently succeed if filled
-    if (body._hp && body._hp.trim() !== "") return NextResponse.json({ success: true });
-
-    const name = (body.firstName || body.lastName)
-      ? `${body.firstName ?? ""} ${body.lastName ?? ""}`.trim()
-      : (body.name ?? "");
-
-    if (!name || !body.email || !body.message) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    // Honeypot: if filled, pretend success (quietly drop spam)
+    if (data._hp && String(data._hp).trim() !== "") {
+      return NextResponse.json({ success: true });
     }
 
-    const apiKey = process.env.SENDGRID_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: "SENDGRID_API_KEY not configured" }, { status: 500 });
+    const { firstName, lastName, email } = data;
+
+    if (!required(firstName) || !required(lastName) || !required(email)) {
+      return NextResponse.json(
+        { success: false, message: "Missing required fields." },
+        { status: 400 }
+      );
     }
 
-    const interests = Array.isArray(body.interests) ? body.interests : body.interests ? [body.interests] : [];
+    // 1) Env vars
+    const API_KEY = process.env.SENDGRID_API_KEY;
+    const FROM = process.env.SENDGRID_FROM; // must be a *verified* sender in SendGrid
+    const TO_LIST =
+      process.env.CONTACT_TO || "obrye@obrye.global,obrye1@gmail.com";
 
-    // --- Admin email (TO + CC only; no BCC to avoid duplication) ---
-    const adminMail = {
-      personalizations: [
+    if (!API_KEY || !FROM) {
+      return NextResponse.json(
         {
-          to: [{ email: ADMIN_TO }],
-          cc: [{ email: ADMIN_CC }],
-          subject: body.subject || "New website contact",
+          success: false,
+          message:
+            "SendGrid is not configured (missing SENDGRID_API_KEY or SENDGRID_FROM).",
         },
-      ],
-      from: { email: "no-reply@obrye.global", name: "OBR Website" },
-      reply_to: { email: body.email, name },
-      content: [{ type: "text/html", value: adminHtml({ ...body, interests }) }],
+        { status: 500 }
+      );
+    }
+
+    // 2) Prepare email content
+    const fullName = `${firstName} ${lastName}`.trim();
+    const subject =
+      (data.subject && data.subject.trim()) ||
+      `New contact form submission from ${fullName}`;
+
+    const interestsArray = Array.isArray(data.interests)
+      ? data.interests
+      : data.interests
+      ? [data.interests]
+      : [];
+
+    const ownerText = `
+New contact form submission:
+
+Name: ${fullName}
+Email: ${email}
+Phone: ${data.phone || "-"}
+Company: ${data.company || "-"}
+Country: ${data.country || "-"}
+Subject: ${subject}
+Interests: ${interestsArray.join(", ") || "-"}
+
+Message:
+${data.message || "-"}
+`.trim();
+
+    const confirmationText = `
+Hi ${firstName},
+
+Thanks for reaching out — I received your message and will get back to you shortly.
+
+Summary of your submission:
+- Subject: ${subject}
+- Interests: ${interestsArray.join(", ") || "-"}
+
+Your message:
+${data.message || "-"}
+
+Best,
+Ole Bent Rye
+obrye@obrye.global
+`.trim();
+
+    // 3) Send emails
+    sgMail.setApiKey(API_KEY);
+
+    const toAddresses = TO_LIST.split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const ownerMsg = {
+      to: toAddresses,
+      from: FROM,
+      replyTo: email, // so you can reply straight to the sender
+      subject,
+      text: ownerText,
     };
 
-    // --- User confirmation (with BCC to you) ---
-    const userMail = {
-      personalizations: [
-        {
-          to: [{ email: body.email }],
-          bcc: [{ email: ADMIN_BCC }],
-          subject: "Thanks for your message",
-        },
-      ],
-      from: { email: "no-reply@obrye.global", name: "Ole Bent Rye" },
-      content: [{ type: "text/html", value: userHtml(body) }],
-      headers: { "X-Entity-Ref-ID": String(Date.now()) }, // avoid provider dedupe
+    const confirmMsg = {
+      to: email,
+      from: FROM,
+      subject: "Thanks — I received your message",
+      text: confirmationText,
     };
 
-    const headers = {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    };
-
-    const [r1, r2] = await Promise.all([
-      fetch("https://api.sendgrid.com/v3/mail/send", { method: "POST", headers, body: JSON.stringify(adminMail) }),
-      fetch("https://api.sendgrid.com/v3/mail/send", { method: "POST", headers, body: JSON.stringify(userMail) }),
-    ]);
-
-    if (!r1.ok) return NextResponse.json({ error: `SendGrid admin mail failed: ${await r1.text()}` }, { status: 502 });
-    if (!r2.ok) return NextResponse.json({ error: `SendGrid user mail failed: ${await r2.text()}` }, { status: 502 });
+    // Send both (owner + confirmation)
+    await sgMail.send(ownerMsg as any);
+    await sgMail.send(confirmMsg as any);
 
     return NextResponse.json({ success: true });
   } catch (err: any) {
-    return NextResponse.json({ error: err?.message ?? "Unexpected error" }, { status: 500 });
+    // Helpful error logging for troubleshooting
+    const sgDetails =
+      err?.response?.body ? JSON.stringify(err.response.body) : String(err);
+    console.error("[/api/contact] SendGrid error:", sgDetails);
+
+    return NextResponse.json(
+      {
+        success: false,
+        message: "SendGrid error",
+        details: sgDetails,
+      },
+      { status: 500 }
+    );
   }
 }
