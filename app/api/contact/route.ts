@@ -37,7 +37,15 @@ async function sendViaSendGrid(data: Required<Pick<Payload, "email">> & Payload)
 
   sgMail.setApiKey(API_KEY);
 
+  // Admin recipients for the inbound notification
   const toAddresses = (process.env.CONTACT_TO || "obrye@obrye.global,obrye1@gmail.com")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  // Who should be BCC'd on the confirmation back to the sender
+  // You asked specifically to always receive a copy:
+  const confirmationBcc = (process.env.CONFIRMATION_BCC || "obrye@obrye.global")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
@@ -79,7 +87,7 @@ obrye@obrye.global
 `.trim();
 
   try {
-    // send to you
+    // 1) Send notification to you (admin)
     await sgMail.send({
       to: toAddresses,
       from: FROM,
@@ -88,11 +96,12 @@ obrye@obrye.global
       text: ownerText,
     } as any);
 
-    // confirmation to sender
+    // 2) Send confirmation to the sender, BCC you on it
     if (reqd(data.email)) {
       await sgMail.send({
         to: data.email,
         from: FROM,
+        bcc: confirmationBcc, // <-- copy of confirmation to you
         subject: "Thanks — I received your message",
         text: confirmText,
       } as any);
@@ -108,65 +117,6 @@ obrye@obrye.global
       message: "SendGrid send failed",
       details,
     };
-  }
-}
-
-async function sendViaResend(data: Required<Pick<Payload, "email">> & Payload) {
-  const API_KEY = process.env.RESEND_API_KEY;
-  if (!API_KEY) {
-    return { ok: false, code: "RESEND_MISSING_CONFIG", message: "Resend not configured" };
-  }
-
-  const toAddresses = (process.env.CONTACT_TO || "obrye@obrye.global,obrye1@gmail.com")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-
-  const fullName = `${data.firstName || ""} ${data.lastName || ""} ${data.name || ""}`.trim();
-  const subject =
-    (data.subject && data.subject.trim()) ||
-    `New contact form submission from ${fullName || data.email}`;
-
-  const html = `
-    <h2>New Contact Form Submission</h2>
-    <p><strong>Name:</strong> ${fullName || "-"}</p>
-    <p><strong>Email:</strong> ${data.email}</p>
-    <p><strong>Phone:</strong> ${data.phone || "-"}</p>
-    <p><strong>Company:</strong> ${data.company || "-"}</p>
-    <p><strong>Country:</strong> ${data.country || "-"}</p>
-    <p><strong>Interests:</strong> ${joinInterests(data.interests) || "-"}</p>
-    <p><strong>Subject:</strong> ${subject}</p>
-    <p><strong>Message:</strong><br/>${(data.message || "").replace(/\n/g, "<br/>")}</p>
-  `;
-
-  try {
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: process.env.RESEND_FROM || "OBR Contact <onboarding@resend.dev>",
-        to: toAddresses,
-        subject,
-        html,
-      }),
-    });
-
-    if (!res.ok) {
-      const text = await res.text();
-      console.error("[/api/contact] Resend error:", text);
-      return { ok: false, code: "RESEND_SEND_FAILED", message: "Resend send failed", details: text };
-    }
-
-    // Optional: also send confirmation via Resend (only if you’ve verified a from domain/address)
-    // Skipped to keep fallback simple.
-
-    return { ok: true };
-  } catch (err: any) {
-    console.error("[/api/contact] Resend error:", err);
-    return { ok: false, code: "RESEND_SEND_FAILED", message: "Resend send failed", details: String(err) };
   }
 }
 
@@ -186,22 +136,19 @@ export async function POST(req: Request) {
       );
     }
 
-    // 1) If SendGrid is configured, use it and return its precise error if it fails
-    const hasSendGrid = !!process.env.SENDGRID_API_KEY && !!process.env.SENDGRID_FROM;
-
-    if (hasSendGrid) {
-      const sg = await sendViaSendGrid(data as Required<Pick<Payload, "email">> & Payload);
-      if (sg.ok) return NextResponse.json({ success: true });
-      // If SendGrid failed, surface its error to help fix quickly (don’t mask with fallback)
-      return NextResponse.json({ success: false, message: sg.message, details: sg.details }, { status: 500 });
+    const result = await sendViaSendGrid(data as Required<Pick<Payload, "email">> & Payload);
+    if (result.ok) {
+      return NextResponse.json({ success: true });
     }
-
-    // 2) Otherwise, try Resend as a fallback (works even without verified domain via onboarding@resend.dev)
-    const rs = await sendViaResend(data as Required<Pick<Payload, "email">> & Payload);
-    if (rs.ok) return NextResponse.json({ success: true });
-    return NextResponse.json({ success: false, message: rs.message, details: rs.details }, { status: 500 });
+    return NextResponse.json(
+      { success: false, message: result.message, details: result.details },
+      { status: 500 }
+    );
   } catch (err: any) {
     console.error("[/api/contact] API error:", err);
-    return NextResponse.json({ success: false, message: "Server error", details: String(err) }, { status: 500 });
+    return NextResponse.json(
+      { success: false, message: "Server error", details: String(err) },
+      { status: 500 }
+    );
   }
 }
