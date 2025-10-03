@@ -1,10 +1,10 @@
 /* -----------------------------------------
-   OBR Overrides: survive v0 exports
-   Uses raw CSS variables defined in globals.css (@theme inline)
+   OBR Overrides (safe from v0 exports)
+   Uses CSS variables defined in styles/globals.css (@theme inline)
 ------------------------------------------ */
 
 @layer components {
-  /* Card */
+  /* ---------- Card ---------- */
   .card {
     background-color: var(--color-card);
     color: var(--color-card-foreground);
@@ -13,7 +13,7 @@
     box-shadow: 0 10px 30px rgba(0,0,0,.08);
   }
 
-  /* Primary button */
+  /* ---------- Primary Button ---------- */
   .btn-primary {
     display: inline-flex;
     align-items: center;
@@ -23,10 +23,9 @@
     background-color: var(--color-primary);
     color: var(--color-primary-foreground);
 
-    padding: 0.75rem 1.25rem;               /* py-3 px-5 */
+    padding: 0.75rem 1.25rem; /* py-3 px-5 */
     border-radius: var(--radius-lg);
     border: none;
-
     transition: opacity .15s ease;
   }
   .btn-primary:hover { opacity: .95; }
@@ -36,43 +35,87 @@
     outline-offset: 2px;
   }
 
-  /* Label */
+  /* ---------- Label ---------- */
   .label {
-    font-size: 0.875rem;                    /* text-sm */
+    font-size: 0.875rem; /* text-sm */
     font-weight: 500;
     color: var(--color-muted-foreground);
   }
 
-  /* Inputs & textarea */
+  /* ---------- Inputs & Textarea (classed) ---------- */
   .input {
     width: 100%;
     background-color: color-mix(in oklch, #fff 90%, transparent);
-    /* Dark-mode fallback; your .dark tokens still apply overall */
-    /* For dark, the page body already flips tokens; keep this simple */
-
     border: 1px solid var(--color-input);
     border-radius: var(--radius-lg);
-    padding: 0.75rem 1rem;                   /* py-3 px-4 */
+    padding: 0.75rem 1rem; /* py-3 px-4 */
     outline: none;
+    color: var(--color-foreground);
   }
   .input:focus-visible {
     outline: 2px solid var(--color-ring);
     outline-offset: 2px;
     border-color: transparent;
   }
-
   textarea.input {
-    min-height: 9rem;                        /* ~h-36 */
+    min-height: 9rem; /* ~ h-36 */
     resize: vertical;
   }
 
-  /* Checkbox / option card */
+  /* ---------- Checkbox / Option card ---------- */
   .checkcard {
     display: flex;
     align-items: center;
-    gap: 0.75rem;                             /* gap-3 */
+    gap: 0.75rem;          /* gap-3 */
     border: 1px solid var(--color-input);
     border-radius: var(--radius-lg);
-    padding: 0.75rem;                         /* p-3 */
+    padding: 0.75rem;      /* p-3 */
+  }
+
+  /* ---------- Fallback styles (plain HTML) ----------
+     These ensure a polished look even if markup lacks our classes.
+  --------------------------------------------------- */
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="password"],
+  input[type="search"],
+  input[type="number"],
+  select,
+  textarea {
+    width: 100%;
+    background-color: color-mix(in oklch, #fff 90%, transparent);
+    border: 1px solid var(--color-input);
+    border-radius: var(--radius-lg);
+    padding: 0.75rem 1rem;
+    outline: none;
+    color: var(--color-foreground);
+  }
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+    border-color: transparent;
+  }
+
+  button[type="submit"] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 500;
+    background-color: var(--color-primary);
+    color: var(--color-primary-foreground);
+    padding: 0.75rem 1.25rem;
+    border-radius: var(--radius-lg);
+    border: none;
+    transition: opacity .15s ease;
+  }
+  button[type="submit"]:hover { opacity: .95; }
+  button[type="submit"]:disabled { opacity: .5; cursor: not-allowed; }
+  button[type="submit"]:focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
   }
 }
