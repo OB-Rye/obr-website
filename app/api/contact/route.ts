@@ -29,11 +29,8 @@ function joinInterests(v: string[] | string | undefined) {
 
 async function sendViaSendGrid(data: Required<Pick<Payload, "email">> & Payload) {
   const API_KEY = process.env.SENDGRID_API_KEY?.trim();
-  // Fallback: allow either SENDGRID_FROM or MAIL_FROM
-  const FROM =
-    process.env.SENDGRID_FROM?.trim() ||
-    process.env.MAIL_FROM?.trim() ||
-    "";
+  // Hardcoded fallback for FROM
+  const FROM = "noreply@obrye.global";
 
   if (!API_KEY || !FROM) {
     return {
@@ -42,8 +39,7 @@ async function sendViaSendGrid(data: Required<Pick<Payload, "email">> & Payload)
       message: "SendGrid not configured",
       details: {
         has_SENDGRID_API_KEY: !!API_KEY,
-        has_SENDGRID_FROM: !!process.env.SENDGRID_FROM,
-        has_MAIL_FROM: !!process.env.MAIL_FROM,
+        using_hardcoded_FROM: !!FROM,
       },
     };
   }
