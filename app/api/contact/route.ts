@@ -1,132 +1,145 @@
-// app/api/contact/route.ts
 import { NextResponse } from "next/server";
-import sgMail from "@sendgrid/mail";
+import sendgrid from "@sendgrid/mail";
 
-// ✅ Force Node.js runtime (SendGrid does not work on Edge runtime)
-export const runtime = "nodejs";
+export const runtime = "nodejs"; // ensure Node runtime on Vercel
 
-type Body = {
+type Payload = {
   firstName?: string;
   lastName?: string;
-  email?: string;
-  phone?: string;
+  name?: string; // fallback if only one name field
+  email: string;
   company?: string;
   country?: string;
-  subject?: string;
-  message?: string;
+  phone?: string;
   interests?: string[] | string;
-  _hp?: string | null; // honeypot
+  subject?: string;
+  message: string;
+  _hp?: string; // honeypot
 };
 
-// helper to check required string
-function reqd(v: unknown): v is string {
-  return typeof v === "string" && v.trim().length > 0;
+// Try SendGrid first
+async function sendWithSendGrid(data: Payload) {
+  const apiKey = process.env.SENDGRID_API_KEY;
+  const from = process.env.SENDGRID_FROM;
+
+  if (!apiKey || !from) {
+    return { ok: false, error: "SendGrid not configured" };
+  }
+
+  sendgrid.setApiKey(apiKey);
+
+  const interests = Array.isArray(data.interests)
+    ? data.interests.join(", ")
+    : data.interests || "";
+
+  const msg = {
+    to: ["obrye@obrye.global", "obrye1@gmail.com"],
+    from,
+    subject: data.subject || "New Contact Form Submission",
+    text: `
+New contact form submission:
+
+Name: ${data.firstName || ""} ${data.lastName || ""} ${data.name || ""}
+Email: ${data.email}
+Company: ${data.company || ""}
+Country: ${data.country || ""}
+Phone: ${data.phone || ""}
+Interests: ${interests}
+Subject: ${data.subject || ""}
+Message: ${data.message || ""}
+    `,
+    html: `
+      <h2>New Contact Form Submission</h2>
+      <p><strong>Name:</strong> ${data.firstName || ""} ${data.lastName || ""} ${data.name || ""}</p>
+      <p><strong>Email:</strong> ${data.email}</p>
+      <p><strong>Company:</strong> ${data.company || ""}</p>
+      <p><strong>Country:</strong> ${data.country || ""}</p>
+      <p><strong>Phone:</strong> ${data.phone || ""}</p>
+      <p><strong>Interests:</strong> ${interests}</p>
+      <p><strong>Subject:</strong> ${data.subject || ""}</p>
+      <p><strong>Message:</strong><br/>${data.message || ""}</p>
+    `,
+  };
+
+  try {
+    await sendgrid.send(msg);
+    return { ok: true };
+  } catch (err: any) {
+    console.error("SendGrid error:", err);
+    return { ok: false, error: err.message || "SendGrid send failed" };
+  }
+}
+
+// Fallback: Resend
+async function sendWithResend(data: Payload) {
+  const apiKey = process.env.RESEND_API_KEY;
+
+  if (!apiKey) {
+    return { ok: false, error: "Resend not configured" };
+  }
+
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: "no-reply@obrye.global",
+        to: ["obrye@obrye.global", "obrye1@gmail.com"],
+        subject: data.subject || "New Contact Form Submission",
+        html: `
+          <h2>New Contact Form Submission</h2>
+          <p><strong>Name:</strong> ${data.firstName || ""} ${data.lastName || ""} ${data.name || ""}</p>
+          <p><strong>Email:</strong> ${data.email}</p>
+          <p><strong>Company:</strong> ${data.company || ""}</p>
+          <p><strong>Country:</strong> ${data.country || ""}</p>
+          <p><strong>Phone:</strong> ${data.phone || ""}</p>
+          <p><strong>Interests:</strong> ${Array.isArray(data.interests) ? data.interests.join(", ") : data.interests || ""}</p>
+          <p><strong>Subject:</strong> ${data.subject || ""}</p>
+          <p><strong>Message:</strong><br/>${data.message || ""}</p>
+        `,
+      }),
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Resend failed: ${text}`);
+    }
+
+    return { ok: true };
+  } catch (err: any) {
+    console.error("Resend error:", err);
+    return { ok: false, error: err.message || "Resend send failed" };
+  }
 }
 
 export async function POST(req: Request) {
   try {
-    const data = (await req.json()) as Body;
+    const data: Payload = await req.json();
 
-    // Honeypot: if filled, silently succeed (spam prevention)
-    if (data._hp && String(data._hp).trim() !== "") {
+    // Honeypot spam check
+    if (data._hp) {
+      console.warn("Spam bot blocked via honeypot");
       return NextResponse.json({ success: true });
     }
 
-    const { firstName, lastName, email } = data;
-    if (!reqd(firstName) || !reqd(lastName) || !reqd(email)) {
-      return NextResponse.json(
-        { success: false, message: "Missing required fields (firstName, lastName, email)." },
-        { status: 400 }
-      );
+    // Try SendGrid first
+    let result = await sendWithSendGrid(data);
+
+    if (!result.ok) {
+      console.warn("SendGrid failed, falling back to Resend:", result.error);
+      result = await sendWithResend(data);
     }
 
-    // Load env vars
-    const API_KEY = process.env.SENDGRID_API_KEY;
-    const FROM = process.env.SENDGRID_FROM; // must be verified sender
-    const TO_LIST = process.env.CONTACT_TO || "obrye@obrye.global,obrye1@gmail.com";
-
-    if (!API_KEY || !FROM) {
-      return NextResponse.json(
-        { success: false, message: "SendGrid not configured (missing SENDGRID_API_KEY or SENDGRID_FROM)." },
-        { status: 500 }
-      );
+    if (result.ok) {
+      return NextResponse.json({ success: true });
+    } else {
+      return NextResponse.json({ success: false, message: result.error || "All providers failed" });
     }
-
-    sgMail.setApiKey(API_KEY);
-
-    const fullName = `${firstName} ${lastName}`.trim();
-    const subject =
-      (data.subject && data.subject.trim()) ||
-      `New contact form submission from ${fullName}`;
-
-    const interestsArr = Array.isArray(data.interests)
-      ? data.interests
-      : data.interests
-      ? [data.interests]
-      : [];
-
-    // Message for you
-    const ownerText = `
-New contact form submission:
-
-Name: ${fullName}
-Email: ${email}
-Phone: ${data.phone || "-"}
-Company: ${data.company || "-"}
-Country: ${data.country || "-"}
-Subject: ${subject}
-Interests: ${interestsArr.join(", ") || "-"}
-
-Message:
-${data.message || "-"}
-    `.trim();
-
-    // Confirmation for sender
-    const confirmationText = `
-Hi ${firstName},
-
-Thanks for reaching out — I received your message and will get back to you shortly.
-
-Summary:
-- Subject: ${subject}
-- Interests: ${interestsArr.join(", ") || "-"}
-
-Your message:
-${data.message || "-"}
-
-Best,  
-Ole Bent Rye  
-obrye@obrye.global
-    `.trim();
-
-    const toAddresses = TO_LIST.split(",").map((s) => s.trim()).filter(Boolean);
-
-    // Send to you
-    await sgMail.send({
-      to: toAddresses,
-      from: FROM,
-      replyTo: email,
-      subject,
-      text: ownerText,
-    } as any);
-
-    // Auto-confirmation to sender
-    await sgMail.send({
-      to: email,
-      from: FROM,
-      subject: "Thanks — I received your message",
-      text: confirmationText,
-    } as any);
-
-    return NextResponse.json({ success: true });
   } catch (err: any) {
-    const sgDetails =
-      err?.response?.body ? JSON.stringify(err.response.body) : String(err);
-    console.error("[/api/contact] SendGrid error:", sgDetails);
-
-    return NextResponse.json(
-      { success: false, message: "SendGrid error", details: sgDetails },
-      { status: 500 }
-    );
+    console.error("API error:", err);
+    return NextResponse.json({ success: false, message: err.message || "Server error" });
   }
 }
