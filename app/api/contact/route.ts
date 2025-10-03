@@ -2,7 +2,7 @@
 import { NextResponse } from "next/server";
 import sgMail from "@sendgrid/mail";
 
-// Force Node.js runtime (not Edge) so SendGrid works
+// ✅ Force Node.js runtime (SendGrid does not work on Edge runtime)
 export const runtime = "nodejs";
 
 type Body = {
@@ -18,58 +18,54 @@ type Body = {
   _hp?: string | null; // honeypot
 };
 
-function required(v: unknown): v is string {
+// helper to check required string
+function reqd(v: unknown): v is string {
   return typeof v === "string" && v.trim().length > 0;
 }
 
 export async function POST(req: Request) {
   try {
-    // 0) Parse + validate
     const data = (await req.json()) as Body;
 
-    // Honeypot: if filled, pretend success (quietly drop spam)
+    // Honeypot: if filled, silently succeed (spam prevention)
     if (data._hp && String(data._hp).trim() !== "") {
       return NextResponse.json({ success: true });
     }
 
     const { firstName, lastName, email } = data;
-
-    if (!required(firstName) || !required(lastName) || !required(email)) {
+    if (!reqd(firstName) || !reqd(lastName) || !reqd(email)) {
       return NextResponse.json(
-        { success: false, message: "Missing required fields." },
+        { success: false, message: "Missing required fields (firstName, lastName, email)." },
         { status: 400 }
       );
     }
 
-    // 1) Env vars
+    // Load env vars
     const API_KEY = process.env.SENDGRID_API_KEY;
-    const FROM = process.env.SENDGRID_FROM; // must be a *verified* sender in SendGrid
-    const TO_LIST =
-      process.env.CONTACT_TO || "obrye@obrye.global,obrye1@gmail.com";
+    const FROM = process.env.SENDGRID_FROM; // must be verified sender
+    const TO_LIST = process.env.CONTACT_TO || "obrye@obrye.global,obrye1@gmail.com";
 
     if (!API_KEY || !FROM) {
       return NextResponse.json(
-        {
-          success: false,
-          message:
-            "SendGrid is not configured (missing SENDGRID_API_KEY or SENDGRID_FROM).",
-        },
+        { success: false, message: "SendGrid not configured (missing SENDGRID_API_KEY or SENDGRID_FROM)." },
         { status: 500 }
       );
     }
 
-    // 2) Prepare email content
+    sgMail.setApiKey(API_KEY);
+
     const fullName = `${firstName} ${lastName}`.trim();
     const subject =
       (data.subject && data.subject.trim()) ||
       `New contact form submission from ${fullName}`;
 
-    const interestsArray = Array.isArray(data.interests)
+    const interestsArr = Array.isArray(data.interests)
       ? data.interests
       : data.interests
       ? [data.interests]
       : [];
 
+    // Message for you
     const ownerText = `
 New contact form submission:
 
@@ -79,68 +75,57 @@ Phone: ${data.phone || "-"}
 Company: ${data.company || "-"}
 Country: ${data.country || "-"}
 Subject: ${subject}
-Interests: ${interestsArray.join(", ") || "-"}
+Interests: ${interestsArr.join(", ") || "-"}
 
 Message:
 ${data.message || "-"}
-`.trim();
+    `.trim();
 
+    // Confirmation for sender
     const confirmationText = `
 Hi ${firstName},
 
 Thanks for reaching out — I received your message and will get back to you shortly.
 
-Summary of your submission:
+Summary:
 - Subject: ${subject}
-- Interests: ${interestsArray.join(", ") || "-"}
+- Interests: ${interestsArr.join(", ") || "-"}
 
 Your message:
 ${data.message || "-"}
 
-Best,
-Ole Bent Rye
+Best,  
+Ole Bent Rye  
 obrye@obrye.global
-`.trim();
+    `.trim();
 
-    // 3) Send emails
-    sgMail.setApiKey(API_KEY);
+    const toAddresses = TO_LIST.split(",").map((s) => s.trim()).filter(Boolean);
 
-    const toAddresses = TO_LIST.split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-
-    const ownerMsg = {
+    // Send to you
+    await sgMail.send({
       to: toAddresses,
       from: FROM,
-      replyTo: email, // so you can reply straight to the sender
+      replyTo: email,
       subject,
       text: ownerText,
-    };
+    } as any);
 
-    const confirmMsg = {
+    // Auto-confirmation to sender
+    await sgMail.send({
       to: email,
       from: FROM,
       subject: "Thanks — I received your message",
       text: confirmationText,
-    };
-
-    // Send both (owner + confirmation)
-    await sgMail.send(ownerMsg as any);
-    await sgMail.send(confirmMsg as any);
+    } as any);
 
     return NextResponse.json({ success: true });
   } catch (err: any) {
-    // Helpful error logging for troubleshooting
     const sgDetails =
       err?.response?.body ? JSON.stringify(err.response.body) : String(err);
     console.error("[/api/contact] SendGrid error:", sgDetails);
 
     return NextResponse.json(
-      {
-        success: false,
-        message: "SendGrid error",
-        details: sgDetails,
-      },
+      { success: false, message: "SendGrid error", details: sgDetails },
       { status: 500 }
     );
   }
