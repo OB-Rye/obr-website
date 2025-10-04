@@ -113,7 +113,7 @@ export default function V0ContactClient({ className = "", children }: Props) {
   }, []);
 
   return (
-    <form onSubmit={handleSubmit} className={className} data-v0c-rev="v0c-2025-10-04-SSR">
+    <form onSubmit={handleSubmit} className={className}>
       {/* v0 field markup passed in as children */}
       {children}
 
@@ -127,4 +127,31 @@ export default function V0ContactClient({ className = "", children }: Props) {
             btn-primary w-full
             transition duration-300 ease-in-out
             hover:bg-blue-700 hover:scale-105 hover:-translate-y-0.5 hover:shadow-xl
-            focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offs
+            focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 focus:ring-offset-white
+            active:scale-[0.97]
+            disabled:opacity-60 disabled:cursor-not-allowed
+          "
+          onClick={(e) => {
+            if (typeof window !== "undefined" && !loading) {
+              e.currentTarget.form?.requestSubmit?.();
+            }
+          }}
+        >
+          {loading ? "Sending…" : "Send Message"}
+        </button>
+      </div>
+
+      {/* Inline status */}
+      {ok === true && (
+        <p className="mt-3 text-sm text-green-600" aria-live="polite">
+          ✅ Your message has been sent successfully! A confirmation email has been sent to your inbox.
+        </p>
+      )}
+      {ok === false && (
+        <p className="mt-3 text-sm text-red-600" aria-live="polite">
+          ❌ {errorMsg || "Please complete the required fields."}
+        </p>
+      )}
+    </form>
+  );
+}
