@@ -14,7 +14,7 @@ export default function ContactPage() {
     try {
       await navigator.clipboard.writeText(emailToCopy);
     } catch {
-      // fallback
+      // fallback for older browsers
       const ta = document.createElement("textarea");
       ta.value = emailToCopy;
       document.body.appendChild(ta);
@@ -128,7 +128,7 @@ export default function ContactPage() {
               <input id="phone" name="phone" type="tel" className="input" placeholder="+1 (555) 123-4567" />
             </div>
 
-            {/* Message */}
+            {/* Message (explicitly NOT required) */}
             <div className="space-y-2">
               <label htmlFor="message" className="label">
                 Your Message
@@ -138,6 +138,8 @@ export default function ContactPage() {
                 name="message"
                 className="input min-h-[120px]"
                 placeholder="Tell me about your goals, challenges, or questions..."
+                required={false}
+                aria-required="false"
               />
             </div>
 

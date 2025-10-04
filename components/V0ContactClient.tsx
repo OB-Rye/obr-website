@@ -1,4 +1,3 @@
-// components/V0ContactClient.tsx
 "use client";
 
 import * as React from "react";
@@ -14,6 +13,13 @@ export default function V0ContactClient({ className = "", children }: Props) {
   const [ok, setOk] = React.useState<null | boolean>(null);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
 
+  // Helper to format a human-friendly list: "A", "A and B", "A, B and C"
+  const formatList = (arr: string[]) => {
+    if (arr.length <= 1) return arr.join("");
+    if (arr.length === 2) return `${arr[0]} and ${arr[1]}`;
+    return `${arr.slice(0, -1).join(", ")} and ${arr[arr.length - 1]}`;
+  };
+
   const handleSubmit = React.useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
@@ -21,11 +27,41 @@ export default function V0ContactClient({ className = "", children }: Props) {
     setErrorMsg(null);
 
     const form = e.currentTarget;
+
+    // Use built-in HTML5 validation for required fields in the markup
+    if (!form.checkValidity()) {
+      const missing: string[] = [];
+      const fn = form.querySelector<HTMLInputElement>("#firstName");
+      const ln = form.querySelector<HTMLInputElement>("#lastName");
+      const em = form.querySelector<HTMLInputElement>("#email");
+      if (!fn?.value.trim()) missing.push("First Name");
+      if (!ln?.value.trim()) missing.push("Last Name");
+      if (!em?.value.trim()) missing.push("Email Address");
+
+      setLoading(false);
+      setOk(false);
+      setErrorMsg(
+        missing.length
+          ? `Please fill in: ${formatList(missing)}.`
+          : "Please complete the required fields."
+      );
+
+      // Focus the first missing field
+      for (const el of [fn, ln, em]) {
+        if (!el?.value.trim()) {
+          el?.focus();
+          break;
+        }
+      }
+
+      form.reportValidity();
+      return;
+    }
+
     const fd = new FormData(form);
     const get = (k: string) => (fd.get(k) ?? "").toString().trim();
     const getAll = (k: string) => fd.getAll(k).map(v => v.toString().trim()).filter(Boolean);
 
-    // Fields (note: no 'subject' anymore)
     const firstName = get("firstName");
     const lastName  = get("lastName");
     const name      = get("name") || `${firstName} ${lastName}`.trim();
@@ -33,26 +69,12 @@ export default function V0ContactClient({ className = "", children }: Props) {
     const phone     = get("phone");
     const company   = get("company");
     const country   = get("country");
-    const message   = get("message");
-    const _hp       = get("_hp"); // honeypot
+    const message   = get("message") || undefined; // OPTIONAL
+    const _hp       = get("_hp");
 
     const interestsArr = getAll("interests");
     const interests: string[] | string =
       interestsArr.length ? interestsArr : (get("interests") || "");
-
-    // Validation aligned with API
-    if (!email) {
-      setLoading(false);
-      setOk(false);
-      setErrorMsg("Email is required.");
-      return;
-    }
-    if (!message) {
-      setLoading(false);
-      setOk(false);
-      setErrorMsg("Message is required.");
-      return;
-    }
 
     try {
       const res = await fetch("/api/contact", {
@@ -67,8 +89,8 @@ export default function V0ContactClient({ className = "", children }: Props) {
           phone:     phone     || undefined,
           company:   company   || undefined,
           country:   country   || undefined,
-          // subject intentionally omitted → backend uses static subject
-          message,
+          // subject omitted (admin subject is static server-side)
+          message, // optional
           interests,
           _hp,
         }),
@@ -91,18 +113,26 @@ export default function V0ContactClient({ className = "", children }: Props) {
   }, []);
 
   return (
-    <form onSubmit={handleSubmit} className={className}>
+    <form onSubmit={handleSubmit} className={className} data-v0c-rev="v0c-2025-10-04-02">
       {/* v0 field markup passed in as children */}
       {children}
 
-      {/* Submit button */}
+      {/* Submit button with clear hover/focus/active affordances */}
       <div className="pt-6">
         <button
           type="submit"
+          title="Send Message"
           disabled={loading}
-          className="btn-primary w-full"
+          className="
+            btn-primary w-full
+            transition-all duration-200
+            hover:brightness-110 hover:shadow-lg
+            focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 focus:ring-offset-white
+            active:scale-[0.99]
+            disabled:opacity-60 disabled:cursor-not-allowed
+          "
           onClick={(e) => {
-            // Safety net: if some outer code prevented default, force a submit
+            // Safety net: if some outer code prevents default, force a submit
             if (!loading) e.currentTarget.form?.requestSubmit?.();
           }}
         >
@@ -112,13 +142,13 @@ export default function V0ContactClient({ className = "", children }: Props) {
 
       {/* Inline status */}
       {ok === true && (
-        <p className="mt-3 text-sm text-green-600">
+        <p className="mt-3 text-sm text-green-600" aria-live="polite">
           ✅ Your message has been sent successfully! A confirmation email has been sent to your inbox.
         </p>
       )}
       {ok === false && (
-        <p className="mt-3 text-sm text-red-600">
-          ❌ {errorMsg || "Something went wrong. Please try again later."}
+        <p className="mt-3 text-sm text-red-600" aria-live="polite">
+          ❌ {errorMsg || "Please complete the required fields."}
         </p>
       )}
     </form>
