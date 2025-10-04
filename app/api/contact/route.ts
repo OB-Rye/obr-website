@@ -59,7 +59,7 @@ async function sendViaSendGrid(data: Required<Pick<Payload, "email">> & Payload)
     .filter(Boolean);
 
   const fullName = `${data.firstName || ""} ${data.lastName || ""} ${data.name || ""}`.trim();
-  // Use static subject for the admin email and in the owner/confirm bodies
+  // Use static subject for the admin email and in the owner body
   const subject = "New website contact";
 
   const ownerText = `
@@ -77,21 +77,20 @@ Message:
 ${data.message || "-"}
 `.trim();
 
+/* -------- UPDATED confirmation body (no Subject/Interests; new signature) -------- */
   const confirmText = `
 Hi ${data.firstName || fullName || ""},
 
 Thanks for your message — I received it and will get back to you shortly.
 
-Subject: ${subject}
-Interests: ${joinInterests(data.interests) || "-"}
-
 Your message:
 ${data.message || "-"}
 
-Best,
+Best regards,
 Ole Bent Rye
 obrye@obrye.global
 `.trim();
+/* ------------------------------------------------------------------------------- */
 
   try {
     // 1) Send notification to you (admin)
@@ -109,7 +108,7 @@ obrye@obrye.global
         to: data.email,
         from: FROM,
         bcc: confirmationBcc, // copy of confirmation to you
-        subject: "Thanks — I received your message",
+        subject: "Thanks — I received your message", // subject header unchanged
         text: confirmText,
       } as any);
     }
@@ -161,8 +160,8 @@ export async function POST(req: Request) {
   } catch (err: any) {
     console.error("[/api/contact] API error:", err);
     return NextResponse.json(
-      { success: false, message: "Server error", details: String(err) },
-      { status: 500 }
+        { success: false, message: "Server error", details: String(err) },
+        { status: 500 }
     );
   }
 }
