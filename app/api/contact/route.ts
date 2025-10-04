@@ -59,9 +59,8 @@ async function sendViaSendGrid(data: Required<Pick<Payload, "email">> & Payload)
     .filter(Boolean);
 
   const fullName = `${data.firstName || ""} ${data.lastName || ""} ${data.name || ""}`.trim();
-  const subject =
-    (data.subject && data.subject.trim()) ||
-    `New contact form submission from ${fullName || data.email}`;
+  // Use static subject for the admin email and in the owner/confirm bodies
+  const subject = "New website contact";
 
   const ownerText = `
 New contact form submission
@@ -100,7 +99,7 @@ obrye@obrye.global
       to: toAddresses,
       from: FROM,
       replyTo: reqd(data.email) ? data.email : undefined,
-      subject,
+      subject, // "New website contact"
       text: ownerText,
     } as any);
 
