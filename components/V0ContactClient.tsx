@@ -1,3 +1,4 @@
+// components/V0ContactClient.tsx
 "use client";
 
 import * as React from "react";
@@ -14,7 +15,7 @@ type Props = React.FormHTMLAttributes<HTMLFormElement> & {
 export default function V0ContactClient({
   className = "",
   children,
-  onSubmit,            // <- parent can provide a handler
+  onSubmit,            // parent can provide a handler
   ...rest
 }: Props) {
   const [loading, setLoading] = React.useState(false);
@@ -113,12 +114,16 @@ export default function V0ContactClient({
       {/* v0 field markup passed in as children */}
       {children}
 
-      {/* Submit button (unchanged style) */}
+      {/* Submit button (unchanged style) with safety-net click */}
       <div className="pt-6">
         <button
           type="submit"
           disabled={loading}
           className="btn-primary w-full"
+          onClick={(e) => {
+            // Safety net: if some outer code prevents default, force a submit
+            if (!loading) e.currentTarget.form?.requestSubmit?.();
+          }}
         >
           {loading ? "Sending…" : "Send Message"}
         </button>

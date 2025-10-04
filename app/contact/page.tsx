@@ -1,3 +1,4 @@
+// app/contact/page.tsx
 "use client";
 
 import type React from "react";
@@ -40,6 +41,9 @@ function serializeContactForm(form: HTMLFormElement) {
 }
 
 export default function ContactPage() {
+  /* tiny revision marker to confirm deployment */
+  const [rev] = useState("contact-2025-10-04-01");
+
   /* copy-to-clipboard for the email link */
   const [copied, setCopied] = useState(false);
   const emailToCopy = "obrye@obrye.global";
@@ -60,7 +64,7 @@ export default function ContactPage() {
     setTimeout(() => setCopied(false), 1600);
   }, []);
 
-  /* submit handler wired to V0ContactClient (must forward onSubmit to its <form>) */
+  /* submit handler wired to V0ContactClient (also has its own internal fallback) */
   const handleSubmit = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
@@ -104,6 +108,9 @@ export default function ContactPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30">
+      {/* invisible revision tag to confirm the deployed file */}
+      <span data-contact-rev={rev} className="sr-only" />
+
       {/* Hero / Intro */}
       <section className="text-center py-16 px-6">
         <div className="inline-flex items-center gap-3 bg-gradient-to-r from-emerald-500/10 to-blue-500/10 rounded-full px-6 py-3 mb-8 border border-emerald-200/30">
