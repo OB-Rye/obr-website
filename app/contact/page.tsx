@@ -1,8 +1,107 @@
+"use client";
 
 import type React from "react";
+import { useCallback, useState } from "react";
 import V0ContactClient from "../../components/V0ContactClient";
 
+/* Serialize current form fields exactly as named in your markup */
+function serializeContactForm(form: HTMLFormElement) {
+  const fd = new FormData(form);
+  const get = (k: string) => (fd.get(k) ?? "").toString().trim();
+  const getAll = (k: string) => fd.getAll(k).map(v => v.toString().trim()).filter(Boolean);
+
+  const firstName = get("firstName");
+  const lastName  = get("lastName");
+  const name      = get("name") || `${firstName} ${lastName}`.trim();
+  const email     = get("email");
+  const phone     = get("phone");
+  const company   = get("company");
+  const country   = get("country");
+  const subject   = get("subject");
+  const message   = get("message");
+
+  const interestsArr = getAll("interests");
+  const interests: string[] | string = interestsArr.length ? interestsArr : (get("interests") || "");
+  const _hp = get("_hp");
+
+  return {
+    firstName: firstName || undefined,
+    lastName:  lastName  || undefined,
+    name:      name      || undefined,
+    email,
+    phone:     phone     || undefined,
+    company:   company   || undefined,
+    country:   country   || undefined,
+    subject:   subject   || undefined,
+    message,
+    interests,
+    _hp,
+  };
+}
+
 export default function ContactPage() {
+  /* copy-to-clipboard for the email link */
+  const [copied, setCopied] = useState(false);
+  const emailToCopy = "obrye@obrye.global";
+
+  const handleCopyEmail = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(emailToCopy);
+    } catch {
+      // Fallback for older browsers
+      const ta = document.createElement("textarea");
+      ta.value = emailToCopy;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1600);
+  }, []);
+
+  /* submit handler wired to V0ContactClient (must forward onSubmit to its <form>) */
+  const handleSubmit = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const payload = serializeContactForm(form);
+
+    // Client-side guard to match API expectations
+    if (!payload.email) {
+      console.warn("Email is required");
+      return;
+    }
+    if (!payload.message) {
+      console.warn("Message is required");
+      return;
+    }
+
+    const btn = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+    const prevDisabled = btn?.disabled;
+    if (btn) btn.disabled = true;
+
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        body: JSON.stringify(payload),
+      });
+
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || json?.success !== true) {
+        console.error("Contact send failed:", json);
+        return;
+      }
+
+      form.reset();
+    } catch (err) {
+      console.error("Network error:", err);
+    } finally {
+      if (btn) btn.disabled = !!prevDisabled;
+    }
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30">
       {/* Hero / Intro */}
@@ -34,7 +133,8 @@ export default function ContactPage() {
       {/* Contact Form Card */}
       <section className="max-w-4xl mx-auto px-6 pb-20">
         <div className="bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl shadow-2xl p-8 sm:p-12">
-          <V0ContactClient className="space-y-8">
+          {/* Attach onSubmit to your existing form component (no visual changes) */}
+          <V0ContactClient className="space-y-8" onSubmit={handleSubmit}>
             {/* Honeypot (anti-spam) */}
             <input type="text" name="_hp" className="hidden" tabIndex={-1} autoComplete="off" />
 
@@ -160,9 +260,14 @@ export default function ContactPage() {
           <h3 className="text-xl font-bold text-slate-900 mb-4">Prefer to Connect Directly?</h3>
           <p className="text-slate-600">
             You can always email me directly at{" "}
-            <a href="mailto:obrye@obrye.global" className="text-emerald-600 font-medium hover:underline">
-              obrye@obrye.global
-            </a>{" "}
+            <button
+              type="button"
+              onClick={handleCopyEmail}
+              className="text-emerald-600 font-medium hover:underline focus:outline-none focus:ring-2 focus:ring-emerald-400 rounded"
+              aria-label="Copy email address to clipboard"
+            >
+              {emailToCopy}
+            </button>{" "}
             or connect with me on{" "}
             <a
               href="https://www.linkedin.com/in/bentrye/"
@@ -173,6 +278,16 @@ export default function ContactPage() {
               LinkedIn
             </a>.
           </p>
+
+          {/* subtle copied toast */}
+          <div
+            className={`transition-opacity duration-200 ${copied ? "opacity-100" : "opacity-0"} mt-3`}
+            aria-live="polite"
+          >
+            <span className="inline-block rounded-full bg-emerald-100 px-3 py-1 text-sm text-emerald-800">
+              Copied!
+            </span>
+          </div>
         </div>
       </section>
     </div>
