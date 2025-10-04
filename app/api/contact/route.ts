@@ -12,7 +12,7 @@ type Payload = {
   phone?: string;
   company?: string;
   country?: string;
-  subject?: string;
+  subject?: string; // ignored for admin subject/body
   message?: string;
   interests?: string[] | string;
   _hp?: string | null; // honeypot
@@ -29,7 +29,7 @@ function joinInterests(v: string[] | string | undefined) {
 
 async function sendViaSendGrid(data: Required<Pick<Payload, "email">> & Payload) {
   const API_KEY = process.env.SENDGRID_API_KEY?.trim();
-  // Hardcoded FROM fallback (you can swap to env later)
+  // Hardcoded FROM fallback (can switch to env later)
   const FROM = "noreply@obrye.global";
 
   if (!API_KEY || !FROM) {
@@ -52,18 +52,22 @@ async function sendViaSendGrid(data: Required<Pick<Payload, "email">> & Payload)
     .map((s) => s.trim())
     .filter(Boolean);
 
-  // Who should be BCC’d on the confirmation back to the sender
+  // BCC on the confirmation back to the sender
   const confirmationBcc = (process.env.CONFIRMATION_BCC || "obrye@obrye.global")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
 
-  const fullName = `${data.firstName || ""} ${data.lastName || ""} ${data.name || ""}`.trim();
+  // Build a clean display name: prefer `name`, else "first last"
+  const first = (data.firstName ?? "").trim();
+  const last = (data.lastName ?? "").trim();
+  const providedName = (data.name ?? "").trim();
+  const fullName = providedName || [first, last].filter(Boolean).join(" ");
 
-  // Static subject for the admin notification
+  // Static subject for admin notification (not echoed in body)
   const subject = "New website contact";
 
-  // Admin notification body (keeps Subject/Interests and echoes message)
+  // --- Admin notification body (no "Subject:" line; no duplicate names) ---
   const ownerText = `
 New contact form submission
 
@@ -72,16 +76,15 @@ Email: ${data.email}
 Phone: ${data.phone || "-"}
 Company: ${data.company || "-"}
 Country: ${data.country || "-"}
-Subject: ${subject}
 Interests: ${joinInterests(data.interests) || "-"}
 
 Message:
 ${data.message || "-"}
 `.trim();
 
-  // Sender confirmation body — NO Subject/Interests, and DOES NOT echo the user's message
+  // --- Sender confirmation body (no Subject/Interests; does not echo user's message) ---
   const confirmText = `
-Hi ${data.firstName || fullName || ""},
+Hi ${first || fullName || ""},
 
 Thanks for your message — I received it and will get back to you shortly.
 
@@ -106,7 +109,7 @@ obrye@obrye.global
         to: data.email,
         from: FROM,
         bcc: confirmationBcc, // copy of confirmation to you
-        subject: "Thanks — I received your message", // header unchanged
+        subject: "Thanks — I received your message",
         text: confirmText,
       } as any);
     }
@@ -133,7 +136,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true });
     }
 
-    // Validation: only email is required (message is optional)
+    // Validation: only email is required (message optional)
     if (!reqd(data.email)) {
       return NextResponse.json(
         { success: false, message: "Email is required." },
