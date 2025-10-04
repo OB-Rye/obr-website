@@ -29,7 +29,7 @@ function joinInterests(v: string[] | string | undefined) {
 
 async function sendViaSendGrid(data: Required<Pick<Payload, "email">> & Payload) {
   const API_KEY = process.env.SENDGRID_API_KEY?.trim();
-  // Hardcoded fallback for FROM
+  // Hardcoded FROM fallback (you can swap to env later)
   const FROM = "noreply@obrye.global";
 
   if (!API_KEY || !FROM) {
@@ -59,9 +59,11 @@ async function sendViaSendGrid(data: Required<Pick<Payload, "email">> & Payload)
     .filter(Boolean);
 
   const fullName = `${data.firstName || ""} ${data.lastName || ""} ${data.name || ""}`.trim();
-  // Use static subject for the admin email and in the owner body
+
+  // Static subject for the admin notification
   const subject = "New website contact";
 
+  // Admin notification body (keeps Subject/Interests and echoes message)
   const ownerText = `
 New contact form submission
 
@@ -77,20 +79,16 @@ Message:
 ${data.message || "-"}
 `.trim();
 
-/* -------- UPDATED confirmation body (no Subject/Interests; new signature) -------- */
+  // Sender confirmation body — NO Subject/Interests, and DOES NOT echo the user's message
   const confirmText = `
 Hi ${data.firstName || fullName || ""},
 
 Thanks for your message — I received it and will get back to you shortly.
 
-Your message:
-${data.message || "-"}
-
 Best regards,
 Ole Bent Rye
 obrye@obrye.global
 `.trim();
-/* ------------------------------------------------------------------------------- */
 
   try {
     // 1) Send notification to you (admin)
@@ -108,7 +106,7 @@ obrye@obrye.global
         to: data.email,
         from: FROM,
         bcc: confirmationBcc, // copy of confirmation to you
-        subject: "Thanks — I received your message", // subject header unchanged
+        subject: "Thanks — I received your message", // header unchanged
         text: confirmText,
       } as any);
     }
@@ -135,16 +133,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true });
     }
 
-    // Basic validation
+    // Validation: only email is required (message is optional)
     if (!reqd(data.email)) {
       return NextResponse.json(
         { success: false, message: "Email is required." },
-        { status: 400 }
-      );
-    }
-    if (!reqd(data.message)) {
-      return NextResponse.json(
-        { success: false, message: "Message is required." },
         { status: 400 }
       );
     }
@@ -160,8 +152,8 @@ export async function POST(req: Request) {
   } catch (err: any) {
     console.error("[/api/contact] API error:", err);
     return NextResponse.json(
-        { success: false, message: "Server error", details: String(err) },
-        { status: 500 }
+      { success: false, message: "Server error", details: String(err) },
+      { status: 500 }
     );
   }
 }
