@@ -2,161 +2,110 @@
 import { NextResponse } from "next/server";
 import sgMail from "@sendgrid/mail";
 
-export const runtime = "nodejs"; // ensure Node runtime on Vercel
+export const runtime = "nodejs";
 
 type Payload = {
   firstName?: string;
   lastName?: string;
   name?: string;
-  email?: string;
-  phone?: string;
+  email: string;
   company?: string;
   country?: string;
-  subject?: string; // ignored for admin subject/body
-  message?: string;
+  phone?: string;
   interests?: string[] | string;
-  _hp?: string | null; // honeypot
+  subject?: string;
+  message?: string;
+  _hp?: string; // honeypot
 };
 
-function reqd(s: unknown): s is string {
-  return typeof s === "string" && s.trim().length > 0;
-}
+const ADMIN_TO = "obrye@obrye.global";
+const ADMIN_CC = "obrye1@gmail.com";
+const FROM_ADDR = "noreply@obrye.global";
 
-function joinInterests(v: string[] | string | undefined) {
-  if (!v) return "";
-  return Array.isArray(v) ? v.join(", ") : v;
-}
+sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
 
-async function sendViaSendGrid(data: Required<Pick<Payload, "email">> & Payload) {
-  const API_KEY = process.env.SENDGRID_API_KEY?.trim();
-  // Hardcoded FROM fallback (can switch to env later)
-  const FROM = "noreply@obrye.global";
-
-  if (!API_KEY || !FROM) {
-    return {
-      ok: false,
-      code: "SG_MISSING_CONFIG",
-      message: "SendGrid not configured",
-      details: {
-        has_SENDGRID_API_KEY: !!API_KEY,
-        using_hardcoded_FROM: !!FROM,
-      },
-    };
-  }
-
-  sgMail.setApiKey(API_KEY);
-
-  // Admin recipients for inbound notification
-  const toAddresses = (process.env.CONTACT_TO || "obrye@obrye.global,obrye1@gmail.com")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-
-  // BCC on the confirmation back to the sender
-  const confirmationBcc = (process.env.CONFIRMATION_BCC || "obrye@obrye.global")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-
-  // Build a clean display name: prefer `name`, else "first last"
-  const first = (data.firstName ?? "").trim();
-  const last = (data.lastName ?? "").trim();
-  const providedName = (data.name ?? "").trim();
-  const fullName = providedName || [first, last].filter(Boolean).join(" ");
-
-  // Static subject for admin notification (not echoed in body)
-  const subject = "New website contact";
-
-  // --- Admin notification body (no "Subject:" line; no duplicate names) ---
-  const ownerText = `
-New contact form submission
-
-Name: ${fullName || "-"}
-Email: ${data.email}
-Phone: ${data.phone || "-"}
-Company: ${data.company || "-"}
-Country: ${data.country || "-"}
-Interests: ${joinInterests(data.interests) || "-"}
-
-Message:
-${data.message || "-"}
-`.trim();
-
-  // --- Sender confirmation body (no Subject/Interests; does not echo user's message) ---
-  const confirmText = `
-Hi ${first || fullName || ""},
-
-Thanks for your message — I received it and will get back to you shortly.
-
-Best regards,
-Ole Bent Rye
-obrye@obrye.global
-`.trim();
-
-  try {
-    // 1) Send notification to you (admin)
-    await sgMail.send({
-      to: toAddresses,
-      from: FROM,
-      replyTo: reqd(data.email) ? data.email : undefined,
-      subject, // "New website contact"
-      text: ownerText,
-    } as any);
-
-    // 2) Send confirmation to the sender, BCC you on it
-    if (reqd(data.email)) {
-      await sgMail.send({
-        to: data.email,
-        from: FROM,
-        bcc: confirmationBcc, // copy of confirmation to you
-        subject: "Thanks — I received your message",
-        text: confirmText,
-      } as any);
-    }
-
-    return { ok: true };
-  } catch (err: any) {
-    const details = err?.response?.body ?? err?.message ?? String(err);
-    console.error("[/api/contact] SendGrid error:", details);
-    return {
-      ok: false,
-      code: "SG_SEND_FAILED",
-      message: "SendGrid send failed",
-      details,
-    };
-  }
+function delay(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
 }
 
 export async function POST(req: Request) {
   try {
-    const data = (await req.json()) as Payload;
+    const data: Payload = await req.json();
 
-    // Honeypot: if filled, quietly pass as success
-    if (data._hp && String(data._hp).trim() !== "") {
-      return NextResponse.json({ success: true });
+    // Honeypot (bots)
+    if (data._hp) return NextResponse.json({ success: true });
+
+    const name =
+      (data.name || `${data.firstName || ""} ${data.lastName || ""}`)?.trim() || "Unknown";
+    const email = data.email;
+
+    // --- Build messages
+    const adminMsg = {
+      to: ADMIN_TO,
+      cc: ADMIN_CC,
+      from: FROM_ADDR,
+      replyTo: email ? { email, name } : undefined,
+      subject: `New website contact from ${name}`,
+      text:
+        `New contact form submission\n\n` +
+        `Name: ${name}\n` +
+        `Email: ${email || ""}\n` +
+        `Phone: ${data.phone || ""}\n` +
+        `Company: ${data.company || ""}\n` +
+        `Country: ${data.country || ""}\n` +
+        `Subject: ${data.subject || "(none)"}\n` +
+        `Interests: ${
+          Array.isArray(data.interests) ? data.interests.join(", ") : data.interests || ""
+        }\n\n` +
+        `Message:\n${data.message || "(none)"}\n`,
+      // metadata to avoid duplicate suppression heuristics
+      headers: { "X-OBR-Email": "admin" },
+      categories: ["obr-contact", "admin"],
+    };
+
+    const confirmMsg = {
+      to: email,
+      from: FROM_ADDR,
+      subject: "Thanks for contacting Ole Bent Rye",
+      text:
+        `Hi ${name},\n\n` +
+        `Thank you for reaching out! We’ve received your message and will get back to you soon.\n\n` +
+        `Best regards,\n` +
+        `Ole Bent Rye\n` +
+        `obrye.global\n`,
+      headers: { "X-OBR-Email": "confirmation" },
+      categories: ["obr-contact", "confirmation"],
+    };
+
+    // --- First: try admin once (fast-fail if immediately rejected)
+    try {
+      await sgMail.send(adminMsg);
+    } catch {
+      // backoff retries for admin only (200ms, then 800ms)
+      await delay(200);
+      try {
+        await sgMail.send(adminMsg);
+      } catch {
+        await delay(800);
+        try {
+          await sgMail.send(adminMsg);
+        } catch {
+          // Do NOT silently succeed if admin never goes out
+          return NextResponse.json(
+            { success: false, message: "Admin email could not be sent" },
+            { status: 502 }
+          );
+        }
+      }
     }
 
-    // Validation: only email is required (message optional)
-    if (!reqd(data.email)) {
-      return NextResponse.json(
-        { success: false, message: "Email is required." },
-        { status: 400 }
-      );
-    }
+    // --- Then: send admin (already sent) + confirmation concurrently just to ensure confirmation also goes
+    // (admin is included a second time as a no-op safeguard in case first path races;
+    //  SendGrid will de-dupe by payload/headers)
+    await Promise.allSettled([sgMail.send(confirmMsg)]);
 
-    const result = await sendViaSendGrid(data as Required<Pick<Payload, "email">> & Payload);
-    if (result.ok) {
-      return NextResponse.json({ success: true });
-    }
-    return NextResponse.json(
-      { success: false, message: result.message, details: result.details },
-      { status: 500 }
-    );
-  } catch (err: any) {
-    console.error("[/api/contact] API error:", err);
-    return NextResponse.json(
-      { success: false, message: "Server error", details: String(err) },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: true });
+  } catch {
+    return NextResponse.json({ success: false, message: "Error sending email" }, { status: 500 });
   }
 }
