@@ -6,7 +6,7 @@ import "../styles/globals.css";
 import "../styles/obr-overrides.css";
 
 export const metadata: Metadata = {
-  // This makes relative URLs (like "/obr-social.jpg") resolve to your domain
+  // This makes relative URLs resolve to your domain
   metadataBase: new URL("https://obrye.global"),
 
   title: {
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     description: "Unlock the blind spot slowing your global success.",
     images: [
       {
-        url: "/obr-social.jpg", // file in /public
+        url: "/images/obr-social-share-v3.png?v=1", // updated social image
         width: 1200,
         height: 630,
         alt: "Ole Bent Rye — The Secret to Building the World’s Most Valuable Company",
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     title: "Ole Bent Rye",
     description:
       "Seminars, coaching, and consulting to master cultural intelligence and win across borders.",
-    images: ["/obr-social.jpg"],
+    images: ["/images/obr-social-share-v3.png?v=1"], // updated twitter image
   },
 
   alternates: { canonical: "https://obrye.global/" },
