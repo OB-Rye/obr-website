@@ -58,13 +58,14 @@ export async function POST(req: Request) {
           Array.isArray(data.interests) ? data.interests.join(", ") : data.interests || ""
         }\n\n` +
         `Message:\n${data.message || "(none)"}\n`,
-      // metadata to avoid duplicate suppression heuristics
       headers: { "X-OBR-Email": "admin" },
       categories: ["obr-contact", "admin"],
     };
 
     const confirmMsg = {
       to: email,
+      // ✅ BCC admin so you always receive a copy of the confirmation
+      bcc: ADMIN_TO,
       from: FROM_ADDR,
       subject: "Thanks for contacting Ole Bent Rye",
       text:
@@ -77,20 +78,18 @@ export async function POST(req: Request) {
       categories: ["obr-contact", "confirmation"],
     };
 
-    // --- First: try admin once (fast-fail if immediately rejected)
+    // --- Ensure admin mail goes out (retry a couple times if transient issue)
     try {
       await sgMail.send(adminMsg);
     } catch {
-      // backoff retries for admin only (200ms, then 800ms)
-      await delay(200);
+      await delay(250);
       try {
         await sgMail.send(adminMsg);
       } catch {
-        await delay(800);
+        await delay(750);
         try {
           await sgMail.send(adminMsg);
         } catch {
-          // Do NOT silently succeed if admin never goes out
           return NextResponse.json(
             { success: false, message: "Admin email could not be sent" },
             { status: 502 }
@@ -99,10 +98,8 @@ export async function POST(req: Request) {
       }
     }
 
-    // --- Then: send admin (already sent) + confirmation concurrently just to ensure confirmation also goes
-    // (admin is included a second time as a no-op safeguard in case first path races;
-    //  SendGrid will de-dupe by payload/headers)
-    await Promise.allSettled([sgMail.send(confirmMsg)]);
+    // --- Send confirmation (with BCC to admin)
+    await sgMail.send(confirmMsg);
 
     return NextResponse.json({ success: true });
   } catch {
