@@ -22,15 +22,29 @@ export default function HomePage() {
   // Official PDF link for both online view and download
   const pdfUrl = "https://obrye.global/files/Ole-Bent-Cultural-Framework-v2.pdf?v=1"
 
+  // 🔒 Bulletproof navigate helper (in case an overlay eats the click)
+  const goHome = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    // Let the browser do its thing; if prevented for any reason, force it
+    setTimeout(() => {
+      if (window.location.hostname !== "obrye.global") return
+      // If we’re already on obrye.global, ensure we land on the root
+      if (window.location.pathname !== "/") {
+        window.location.href = "https://obrye.global/"
+      }
+    }, 0)
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <nav className="fixed top-0 left-0 right-0 bg-white shadow-md z-50">
         <div className="max-w-7xl mx-auto flex justify-between items-center p-4">
-          {/* ✅ Restored: Brand link to obrye.global, same tab */}
+          {/* ✅ Restored & hardened: Brand links to obrye.global */}
           <a
-            href="https://obrye.global"
-            className="text-xl font-bold focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-300 hover:opacity-90"
+            href="https://obrye.global/"
+            onClick={goHome}
+            className="text-xl font-bold focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-300 hover:opacity-90 relative z-[60]"
             aria-label="Go to obrye.global home"
+            rel="external"
           >
             OBR
           </a>
@@ -81,10 +95,12 @@ export default function HomePage() {
 
       <footer className="mt-16 mb-8 text-center text-sm text-gray-500">
         © {new Date().getFullYear()} Ole Bent Rye |{" "}
-        {/* ✅ Restored: Footer link to obrye.global */}
+        {/* ✅ Restored & hardened: Footer link to obrye.global */}
         <a
-          href="https://obrye.global"
-          className="underline hover:no-underline focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-300"
+          href="https://obrye.global/"
+          onClick={goHome}
+          className="underline hover:no-underline focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-300 relative z-[60]"
+          rel="external"
         >
           obrye.global
         </a>
