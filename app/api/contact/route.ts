@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     const name = data.name || `${data.firstName || ""} ${data.lastName || ""}`.trim();
     const email = data.email;
 
-    // 1️⃣  Admin notification
+    // 1️⃣ Admin notification
     const adminMsg = {
       to: ADMIN_TO,
       cc: ADMIN_CC,
@@ -49,15 +49,17 @@ Phone: ${data.phone || ""}
 Company: ${data.company || ""}
 Country: ${data.country || ""}
 Subject: ${data.subject || "(none)"}
-Interests: ${Array.isArray(data.interests) ? data.interests.join(", ") : data.interests || ""}
+Interests: ${
+        Array.isArray(data.interests)
+          ? data.interests.join(", ")
+          : data.interests || ""
+      }
 Message:
 ${data.message || "(none)"}
 `,
     };
 
-    await sgMail.send(adminMsg);
-
-    // 2️⃣  Auto-confirmation to sender
+    // 2️⃣ Sender auto-confirmation
     const confirmMsg = {
       to: email,
       from: FROM_ADDR,
@@ -71,7 +73,8 @@ Ole Bent Rye
 obrye.global`,
     };
 
-    await sgMail.send(confirmMsg);
+    // ✅ Send both emails concurrently for reliability
+    await Promise.all([sgMail.send(adminMsg), sgMail.send(confirmMsg)]);
 
     return NextResponse.json({ success: true });
   } catch (err) {
