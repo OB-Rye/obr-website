@@ -19,14 +19,22 @@ export default function HomePage() {
     }
   }
 
-  // ✅ Official PDF link for both online view and download
+  // Official PDF link for both online view and download
   const pdfUrl = "https://obrye.global/files/Ole-Bent-Cultural-Framework-v2.pdf?v=1"
 
   return (
     <div className="min-h-screen bg-background">
       <nav className="fixed top-0 left-0 right-0 bg-white shadow-md z-50">
         <div className="max-w-7xl mx-auto flex justify-between items-center p-4">
-          <h1 className="text-xl font-bold">OBR</h1>
+          {/* ✅ Restored: Brand links to obrye.global */}
+          <a
+            href="https://obrye.global"
+            className="text-xl font-bold focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-300 hover:opacity-90"
+            aria-label="Go to obrye.global home"
+          >
+            OBR
+          </a>
+
           <Button
             variant="outline"
             onClick={copyEmailToClipboard}
@@ -51,21 +59,14 @@ export default function HomePage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center mt-6">
               {/* View Online */}
               <Button asChild variant="default">
-                <a
-                  href={pdfUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
+                <a href={pdfUrl} target="_blank" rel="noopener noreferrer">
                   View Online
                 </a>
               </Button>
 
               {/* Download PDF */}
               <Button asChild variant="outline">
-                <a
-                  href={pdfUrl}
-                  download="Ole-Bent-Cultural-Framework-v2.pdf"
-                >
+                <a href={pdfUrl} download="Ole-Bent-Cultural-Framework-v2.pdf">
                   Download PDF
                 </a>
               </Button>
@@ -79,7 +80,14 @@ export default function HomePage() {
       </main>
 
       <footer className="mt-16 mb-8 text-center text-sm text-gray-500">
-        © {new Date().getFullYear()} Ole Bent Rye | obrye.global
+        © {new Date().getFullYear()} Ole Bent Rye |{" "}
+        {/* ✅ Restored: Footer domain is a live link */}
+        <a
+          href="https://obrye.global"
+          className="underline hover:no-underline focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-300"
+        >
+          obrye.global
+        </a>
       </footer>
     </div>
   )
