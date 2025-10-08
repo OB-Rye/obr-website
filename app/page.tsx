@@ -1,6 +1,5 @@
 "use client"
 
-import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -27,14 +26,14 @@ export default function HomePage() {
     <div className="min-h-screen bg-background">
       <nav className="fixed top-0 left-0 right-0 bg-white shadow-md z-50">
         <div className="max-w-7xl mx-auto flex justify-between items-center p-4">
-          {/* ✅ Brand links internally to home (works on obrye.global & previews) */}
-          <Link
-            href="/"
+          {/* ✅ Restored: Brand link to obrye.global, same tab */}
+          <a
+            href="https://obrye.global"
             className="text-xl font-bold focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-300 hover:opacity-90"
             aria-label="Go to obrye.global home"
           >
             OBR
-          </Link>
+          </a>
 
           <Button
             variant="outline"
@@ -82,14 +81,13 @@ export default function HomePage() {
 
       <footer className="mt-16 mb-8 text-center text-sm text-gray-500">
         © {new Date().getFullYear()} Ole Bent Rye |{" "}
-        {/* ✅ Footer domain links internally to home */}
-        <Link
-          href="/"
+        {/* ✅ Restored: Footer link to obrye.global */}
+        <a
+          href="https://obrye.global"
           className="underline hover:no-underline focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-300"
-          aria-label="Go to obrye.global home"
         >
           obrye.global
-        </Link>
+        </a>
       </footer>
     </div>
   )
