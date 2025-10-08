@@ -523,7 +523,7 @@ export default function HomePage() {
                     <div className="flex flex-wrap gap-4 mt-6">
                       {/* Open in new tab */}
                       <a
-                        href="/files/Ole-Bent-Cultural-Framework.pdf"
+                        href="https://obrye.global/files/Ole-Bent-Cultural-Framework-v2.pdf"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-green-600 to-blue-600 px-6 py-3 text-white font-semibold shadow hover:opacity-90 transition"
@@ -532,7 +532,7 @@ export default function HomePage() {
                       </a>
                       {/* Download directly */}
                       <a
-                        href="/files/Ole-Bent-Cultural-Framework.pdf"
+                        href="https://obrye.global/files/Ole-Bent-Cultural-Framework-v2.pdf"
                         download="Ole-Bent-Cultural-Framework.pdf"
                         className="inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-green-600 to-blue-600 px-6 py-3 text-white font-semibold shadow hover:opacity-90 transition"
                       >
