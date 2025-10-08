@@ -8,78 +8,155 @@ type Payload = {
   firstName?: string;
   lastName?: string;
   name?: string;
-  email: string;
+  email?: string;
+  phone?: string;
   company?: string;
   country?: string;
-  phone?: string;
-  interests?: string[] | string;
-  subject?: string;
+  subject?: string; // ignored for admin subject/body
   message?: string;
-  _hp?: string; // honeypot
+  interests?: string[] | string;
+  _hp?: string | null; // honeypot
 };
 
-const ADMIN_TO = "obrye@obrye.global";
-const ADMIN_CC = "obrye1@gmail.com";
-const FROM_ADDR = "noreply@obrye.global";
+function reqd(s: unknown): s is string {
+  return typeof s === "string" && s.trim().length > 0;
+}
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
+function joinInterests(v: string[] | string | undefined) {
+  if (!v) return "";
+  return Array.isArray(v) ? v.join(", ") : v;
+}
 
-export async function POST(req: Request) {
-  try {
-    const data: Payload = await req.json();
+async function sendViaSendGrid(data: Required<Pick<Payload, "email">> & Payload) {
+  const API_KEY = process.env.SENDGRID_API_KEY?.trim();
+  // Hardcoded FROM fallback (can switch to env later)
+  const FROM = "noreply@obrye.global";
 
-    // honeypot anti-bot
-    if (data._hp) return NextResponse.json({ success: true });
-
-    const name = data.name || `${data.firstName || ""} ${data.lastName || ""}`.trim();
-    const email = data.email;
-
-    // 1️⃣  ADMIN NOTICE
-    const adminMsg = {
-      to: ADMIN_TO,
-      cc: ADMIN_CC,
-      from: FROM_ADDR,
-      subject: `New website contact from ${name || "Unknown"}`,
-      text: `
-New contact form submission:
-
-Name: ${name}
-Email: ${email}
-Phone: ${data.phone || ""}
-Company: ${data.company || ""}
-Country: ${data.country || ""}
-Subject: ${data.subject || "(none)"}
-Interests: ${Array.isArray(data.interests) ? data.interests.join(", ") : data.interests || ""}
-Message:
-${data.message || "(none)"}
-`,
+  if (!API_KEY || !FROM) {
+    return {
+      ok: false,
+      code: "SG_MISSING_CONFIG",
+      message: "SendGrid not configured",
+      details: {
+        has_SENDGRID_API_KEY: !!API_KEY,
+        using_hardcoded_FROM: !!FROM,
+      },
     };
+  }
 
-    console.log("🟩 sending admin email to", ADMIN_TO);
-    await sgMail.send(adminMsg);
-    console.log("✅ admin email sent");
+  sgMail.setApiKey(API_KEY);
 
-    // 2️⃣  AUTO-CONFIRMATION TO SENDER
-    const confirmMsg = {
-      to: email,
-      from: FROM_ADDR,
-      subject: "Thanks for contacting Ole Bent Rye",
-      text: `Hi ${name || ""},
+  // Admin recipients for inbound notification
+  const toAddresses = (process.env.CONTACT_TO || "obrye@obrye.global,obrye1@gmail.com")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
 
-Thank you for reaching out! We’ve received your message and will get back to you soon.
+  // BCC on the confirmation back to the sender
+  const confirmationBcc = (process.env.CONFIRMATION_BCC || "obrye@obrye.global")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  // Build a clean display name: prefer `name`, else "first last"
+  const first = (data.firstName ?? "").trim();
+  const last = (data.lastName ?? "").trim();
+  const providedName = (data.name ?? "").trim();
+  const fullName = providedName || [first, last].filter(Boolean).join(" ");
+
+  // Static subject for admin notification (not echoed in body)
+  const subject = "New website contact";
+
+  // --- Admin notification body (no "Subject:" line; no duplicate names) ---
+  const ownerText = `
+New contact form submission
+
+Name: ${fullName || "-"}
+Email: ${data.email}
+Phone: ${data.phone || "-"}
+Company: ${data.company || "-"}
+Country: ${data.country || "-"}
+Interests: ${joinInterests(data.interests) || "-"}
+
+Message:
+${data.message || "-"}
+`.trim();
+
+  // --- Sender confirmation body (no Subject/Interests; does not echo user's message) ---
+  const confirmText = `
+Hi ${first || fullName || ""},
+
+Thanks for your message — I received it and will get back to you shortly.
 
 Best regards,
 Ole Bent Rye
-obrye.global`,
-    };
+obrye@obrye.global
+`.trim();
 
-    console.log("🟦 sending confirmation to", email);
-    await sgMail.send(confirmMsg);
-    console.log("✅ confirmation sent");
+  try {
+    // 1) Send notification to you (admin)
+    await sgMail.send({
+      to: toAddresses,
+      from: FROM,
+      replyTo: reqd(data.email) ? data.email : undefined,
+      subject, // "New website contact"
+      text: ownerText,
+    } as any);
 
-    return NextResponse.json({ success: true });
+    // 2) Send confirmation to the sender, BCC you on it
+    if (reqd(data.email)) {
+      await sgMail.send({
+        to: data.email,
+        from: FROM,
+        bcc: confirmationBcc, // copy of confirmation to you
+        subject: "Thanks — I received your message",
+        text: confirmText,
+      } as any);
+    }
+
+    return { ok: true };
   } catch (err: any) {
-    console.error("❌ contact form error:", err?.response?.body || err);
-    return NextResponse.json({ success: false, message: "Error sending email" }, { status: 500 });
+    const details = err?.response?.body ?? err?.message ?? String(err);
+    console.error("[/api/contact] SendGrid error:", details);
+    return {
+      ok: false,
+      code: "SG_SEND_FAILED",
+      message: "SendGrid send failed",
+      details,
+    };
+  }
+}
+
+export async function POST(req: Request) {
+  try {
+    const data = (await req.json()) as Payload;
+
+    // Honeypot: if filled, quietly pass as success
+    if (data._hp && String(data._hp).trim() !== "") {
+      return NextResponse.json({ success: true });
+    }
+
+    // Validation: only email is required (message optional)
+    if (!reqd(data.email)) {
+      return NextResponse.json(
+        { success: false, message: "Email is required." },
+        { status: 400 }
+      );
+    }
+
+    const result = await sendViaSendGrid(data as Required<Pick<Payload, "email">> & Payload);
+    if (result.ok) {
+      return NextResponse.json({ success: true });
+    }
+    return NextResponse.json(
+      { success: false, message: result.message, details: result.details },
+      { status: 500 }
+    );
+  } catch (err: any) {
+    console.error("[/api/contact] API error:", err);
+    return NextResponse.json(
+      { success: false, message: "Server error", details: String(err) },
+      { status: 500 }
+    );
   }
 }
